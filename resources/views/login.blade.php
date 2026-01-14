@@ -50,9 +50,14 @@
 
         .backface-hidden {
             backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
         }
 
         .rotate-y-180 {
+            transform: rotateY(180deg);
+        }
+
+        #flip-card.flipped {
             transform: rotateY(180deg);
         }
     </style>
@@ -61,7 +66,7 @@
     <div class="min-h-screen flex flex-col lg:flex-row">
         <!-- Branding card -->
         <div class="order-1 lg:order-none w-full lg:w-1/2 flex items-center justify-center p-6">
-            <div class="bg-white/20 backdrop-blur-md rounded-xl shadow-lg p-6 text-center w-full max-w-md">
+            <div class="bg-white/20 backdrop-blur-md rounded-xl shadow-lg p-6 text-center w-full max-w-md min-h-[500px] flex flex-col justify-center">
                 <img src="/images/logo.png" alt="Brand Logo" class="mx-auto w-24 sm:w-32 mb-6">
                 <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Welcome to MyApp</h2>
                 <p class="mt-2 text-base sm:text-lg text-gray-700 dark:text-gray-300">Your tagline goes here</p>
@@ -70,12 +75,12 @@
         </div>
 
         <!-- Login card -->
-        <div class="order-2 lg:order-none w-full lg:w-1/2 flex items-start justify-center p-6">
-            <div class="relative w-full max-w-md perspective">
-                <div id="flip-card" class="transition-transform duration-700 transform preserve-3d">
+        <div class="order-2 lg:order-none w-full lg:w-1/2 flex items-center justify-center p-6">
+            <div class="relative w-full max-w-md perspective flex items-center">
+                <div id="flip-card" class="transition-transform duration-700 transform preserve-3d w-full min-h-[500px]" style="transform-style: preserve-3d;">
                     <!-- Front: Login -->
-                    <div class="absolute w-full backface-hidden">
-                        <div class="bg-white/30 backdrop-blur-md shadow-2xl rounded-xl p-8">
+                    <div class="absolute inset-0 w-full backface-hidden min-h-[500px]" style="backface-visibility: hidden; -webkit-backface-visibility: hidden; transform: rotateY(0deg);">
+                        <div class="bg-white/30 backdrop-blur-md shadow-2xl rounded-xl p-8 h-full flex flex-col">
                             <h1 class="text-2xl font-bold mb-6">Login</h1>
                             <form class="space-y-4">
                                 <div>
@@ -128,8 +133,8 @@
                     </div>
 
                     <!-- Back: Register -->
-                    <div class="absolute w-full rotate-y-180 backface-hidden">
-                        <div class="bg-white/30 backdrop-blur-md shadow-2xl rounded-xl p-8">
+                    <div class="absolute inset-0 w-full backface-hidden min-h-[500px]" style="backface-visibility: hidden; -webkit-backface-visibility: hidden; transform: rotateY(180deg);">
+                        <div class="bg-white/30 backdrop-blur-md shadow-2xl rounded-xl p-8 h-full flex flex-col">
                             <h1 class="text-2xl font-bold mb-6">Register</h1>
                             <form class="space-y-4">
                                 <div>
@@ -151,7 +156,7 @@
                                     Up</button>
                             </form>
                             <!-- Divider -->
-                            <div class="mt-6 relative">
+                            <!-- <div class="mt-6 relative">
                                 <div class="absolute inset-0 flex items-center">
                                     <div class="w-full border-t border-gray-300 dark:border-gray-700"></div>
                                 </div>
@@ -159,7 +164,7 @@
                                     <span
                                         class="bg-white/30 dark:bg-gray-800/30 px-2 text-sm text-gray-600 dark:text-gray-300">or</span>
                                 </div>
-                            </div>
+                            </div> -->
 
                             <!-- Social login -->
                             <div class="mt-6 grid grid-cols-2 gap-3">

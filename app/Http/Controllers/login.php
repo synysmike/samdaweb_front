@@ -17,6 +17,45 @@ class login extends Controller
     }
 
     /**
+     * Show the login form.
+     */
+    public function showLoginForm()
+    {
+        return view('login');
+    }
+
+    /**
+     * Handle a login request.
+     */
+    public function login(Request $request)
+    {
+        $credentials = $request->validate([
+            'email' => ['required','email'],
+            'password' => ['required'],
+        ]);
+
+        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+            $request->session()->regenerate();
+            return redirect()->intended('/');
+        }
+
+        return back()->withErrors([
+            'email' => 'The provided credentials do not match our records.',
+        ])->onlyInput('email');
+    }
+
+    /**
+     * Handle a logout request.
+     */
+    public function logout(Request $request)
+    {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        return redirect('/login');
+    }
+
+    /**
      * Show the form for creating a new resource.
      */
     public function create()
