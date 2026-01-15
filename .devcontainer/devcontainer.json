@@ -1,9 +1,15 @@
 {
-    "name": "Laravel 11 Devcontainer",
+    "name": "Laravel 11 Devcontainer (FrankenPHP)",
     "dockerComposeFile": ["../docker-compose.yml"],
     "service": "app",
     "workspaceFolder": "/var/www/html",
-    "forwardPorts": [4440, 4441],
+    "forwardPorts": [4440],
+    "portsAttributes": {
+        "4440": {
+            "label": "Laravel App (FrankenPHP)",
+            "onAutoForward": "notify"
+        }
+    },
     "extensions": [
         "ryannaddy.laravel-artisan",
         "onecentlin.laravel5-snippets",
@@ -14,5 +20,23 @@
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode"
     ],
-    "postCreateCommand": "composer install || true && php artisan key:generate || true"
+    "postCreateCommand": "composer install --no-interaction --prefer-dist --optimize-autoloader || true && php artisan key:generate --force || true && php artisan storage:link || true && npm install || true",
+    "postStartCommand": "php artisan optimize:clear || true",
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "php.suggest.basic": false,
+                "intelephense.files.maxSize": 5000000,
+                "editor.formatOnSave": true,
+                "editor.defaultFormatter": "esbenp.prettier-vscode",
+                "[php]": {
+                    "editor.defaultFormatter": "bmewburn.vscode-intelephense-client"
+                },
+                "[blade]": {
+                    "editor.defaultFormatter": "onecentlin.blade-snippets"
+                }
+            }
+        }
+    },
+    "remoteUser": "root"
 }
