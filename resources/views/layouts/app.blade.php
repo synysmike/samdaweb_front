@@ -90,6 +90,71 @@
     </main>
     @stack('js')
     
+    <style>
+        .wishlist-icon {
+            transition: all 0.3s ease;
+        }
+        .wishlist-icon.active {
+            fill: currentColor;
+        }
+    </style>
+    <script>
+        // Wishlist functionality
+        function toggleWishlist(productId) {
+            const btn = document.querySelector(`.wishlist-btn[data-product-id="${productId}"]`);
+            if (!btn) return;
+            
+            const icon = btn.querySelector('.wishlist-icon');
+            const path = icon.querySelector('path');
+            
+            // Toggle wishlist state
+            const isActive = icon.classList.contains('active');
+            
+            if (isActive) {
+                // Remove from wishlist
+                icon.classList.remove('active', 'text-red-500');
+                icon.classList.add('text-gray-400');
+                icon.setAttribute('fill', 'none');
+                path.setAttribute('stroke', 'currentColor');
+                btn.classList.remove('bg-red-50');
+                // Store in localStorage
+                let wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+                wishlist = wishlist.filter(id => id !== productId);
+                localStorage.setItem('wishlist', JSON.stringify(wishlist));
+            } else {
+                // Add to wishlist
+                icon.classList.remove('text-gray-400');
+                icon.classList.add('active', 'text-red-500');
+                icon.setAttribute('fill', 'currentColor');
+                path.setAttribute('stroke', 'none');
+                btn.classList.add('bg-red-50');
+                // Store in localStorage
+                let wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+                if (!wishlist.includes(productId)) {
+                    wishlist.push(productId);
+                }
+                localStorage.setItem('wishlist', JSON.stringify(wishlist));
+            }
+        }
+        
+        // Initialize wishlist state on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+            wishlist.forEach(productId => {
+                const btn = document.querySelector(`.wishlist-btn[data-product-id="${productId}"]`);
+                if (btn) {
+                    const icon = btn.querySelector('.wishlist-icon');
+                    const path = icon.querySelector('path');
+                    icon.classList.remove('text-gray-400');
+                    icon.classList.add('active', 'text-red-500');
+                    icon.setAttribute('fill', 'currentColor');
+                    path.setAttribute('stroke', 'none');
+                    btn.classList.add('bg-red-50');
+                }
+            });
+        });
+    </script>
+    
     <!-- Footer -->
     <footer class="bg-gray-900 text-gray-300 text-center py-4">
         © {{ date('Y') }} MyShop Dashboard. All rights reserved.
