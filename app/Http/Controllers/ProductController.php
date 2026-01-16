@@ -7,6 +7,15 @@ use Illuminate\Http\Request;
 class ProductController extends Controller
 {
     /**
+     * Display all products with pagination
+     * Search queries are handled client-side via JavaScript/jQuery
+     */
+    public function index()
+    {
+        return view('pages.products');
+    }
+
+    /**
      * Display products by category
      */
     public function category($category)
