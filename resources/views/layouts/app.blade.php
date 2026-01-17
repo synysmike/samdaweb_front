@@ -14,7 +14,15 @@
 <body class="min-h-screen bg-white overflow-x-hidden flex flex-col">
 
     <!-- Header -->
-    <header class="bg-white shadow-md" x-data="{ open: false }">
+    <header class="bg-white shadow-md" x-data="{ open: false, userDropdownOpen: false }">
+        @php
+            $isLoggedIn = session()->has('sanctum_token');
+            $userData = session('user_data', null);
+            $userName = $userData['name'] ?? ($userData['name'] ?? 'User');
+            $userEmail = $userData['email'] ?? ($userData['email'] ?? '');
+            $userImage = $userData['image'] ?? ($userData['avatar'] ?? null);
+        @endphp
+        
         <div class="container mx-auto flex justify-between items-center py-4 px-6 gap-4">
             <!-- Logo and Search -->
             <div class="flex items-center gap-4 flex-1 md:flex-initial">
@@ -35,19 +43,67 @@
                 </form>
             </div>
 
-            <!-- Desktop Nav -->
-            <nav class="hidden md:flex space-x-6">
-                <a href="/dashboard" class="hover:text-blue-600">Dashboard</a>
-                <a href="/products" class="hover:text-blue-600">Products</a>
-                <a href="/orders" class="hover:text-blue-600">Orders</a>
-                <a href="/settings" class="hover:text-blue-600">Settings</a>
-            </nav>
+            @if($isLoggedIn)
+                <!-- Desktop Nav - Logged In -->
+                <nav class="hidden md:flex space-x-6">
+                    <a href="/" class="hover:text-blue-600">Home</a>
+                    <a href="/products" class="hover:text-blue-600">Products</a>
+                    <a href="/cart" class="hover:text-blue-600">🛒 Cart</a>
+                </nav>
 
-            <!-- Icons -->
-            <div class="hidden md:flex space-x-4">
-                <a href="/cart" class="hover:text-blue-600">🛒</a>
-                <a href="/profile" class="hover:text-blue-600">👤</a>
-            </div>
+                <!-- User Dropdown - Desktop -->
+                <div class="hidden md:flex items-center space-x-4">
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center space-x-2 focus:outline-none">
+                            <div class="w-10 h-10 rounded-full bg-gray-300 overflow-hidden border-2 border-blue-500">
+                                @if($userImage)
+                                    <img src="{{ $userImage }}" alt="{{ $userName }}" class="w-full h-full object-cover">
+                                @else
+                                    <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
+                                        {{ strtoupper(substr($userName, 0, 1)) }}
+                                    </div>
+                                @endif
+                            </div>
+                            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        
+                        <!-- Dropdown Menu -->
+                        <div x-show="open" 
+                             @click.away="open = false"
+                             x-cloak
+                             x-transition
+                             class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                            <div class="px-4 py-2 border-b border-gray-200">
+                                <p class="text-sm font-semibold text-gray-900">{{ $userName }}</p>
+                                <p class="text-xs text-gray-500 truncate">{{ $userEmail }}</p>
+                            </div>
+                            <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                            <a href="/orders" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Orders</a>
+                            <a href="/settings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Settings</a>
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
+                                    Logout
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            @else
+                <!-- Desktop Nav - Not Logged In -->
+                <nav class="hidden md:flex space-x-6">
+                    <a href="/" class="hover:text-blue-600">Home</a>
+                    <a href="/products" class="hover:text-blue-600">Products</a>
+                </nav>
+
+                <!-- Login/Register Buttons - Desktop -->
+                <div class="hidden md:flex items-center space-x-4">
+                    <a href="{{ route('login') }}" class="px-4 py-2 text-gray-700 hover:text-blue-600 font-medium">Login</a>
+                    <a href="{{ route('login') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">Register</a>
+                </div>
+            @endif
 
             <!-- Mobile Hamburger -->
             <button @click="open = !open" class="md:hidden text-2xl focus:outline-none">
@@ -70,16 +126,53 @@
                         </button>
                     </div>
                 </form>
-                <nav class="flex flex-col items-center space-y-2">
-                    <a href="/dashboard" class="hover:text-blue-600">Dashboard</a>
-                    <a href="/products" class="hover:text-blue-600">Products</a>
-                    <a href="/orders" class="hover:text-blue-600">Orders</a>
-                    <a href="/settings" class="hover:text-blue-600">Settings</a>
-                    <div class="flex space-x-4 mt-2 justify-center">
-                        <a href="/cart" class="hover:text-blue-600">🛒</a>
-                        <a href="/profile" class="hover:text-blue-600">👤</a>
+                
+                @if($isLoggedIn)
+                    <!-- Mobile Menu - Logged In -->
+                    <div class="flex flex-col items-center space-y-4">
+                        <!-- User Info -->
+                        <div class="flex items-center space-x-3 w-full justify-center pb-4 border-b border-gray-300">
+                            <div class="w-12 h-12 rounded-full bg-gray-300 overflow-hidden border-2 border-blue-500">
+                                @if($userImage)
+                                    <img src="{{ $userImage }}" alt="{{ $userName }}" class="w-full h-full object-cover">
+                                @else
+                                    <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold text-lg">
+                                        {{ strtoupper(substr($userName, 0, 1)) }}
+                                    </div>
+                                @endif
+                            </div>
+                            <div class="text-left">
+                                <p class="text-sm font-semibold text-gray-900">{{ $userName }}</p>
+                                <p class="text-xs text-gray-500">{{ $userEmail }}</p>
+                            </div>
+                        </div>
+                        
+                        <nav class="flex flex-col items-center space-y-2 w-full">
+                            <a href="/" class="w-full text-center py-2 hover:text-blue-600">Home</a>
+                            <a href="/products" class="w-full text-center py-2 hover:text-blue-600">Products</a>
+                            <a href="/cart" class="w-full text-center py-2 hover:text-blue-600">🛒 Cart</a>
+                            <a href="/profile" class="w-full text-center py-2 hover:text-blue-600">Profile</a>
+                            <a href="/orders" class="w-full text-center py-2 hover:text-blue-600">My Orders</a>
+                            <a href="/settings" class="w-full text-center py-2 hover:text-blue-600">Settings</a>
+                            <form method="POST" action="{{ route('logout') }}" class="w-full">
+                                @csrf
+                                <button type="submit" class="w-full py-2 text-red-600 hover:text-red-700 font-medium">
+                                    Logout
+                                </button>
+                            </form>
+                        </nav>
                     </div>
-                </nav>
+                @else
+                    <!-- Mobile Menu - Not Logged In -->
+                    <nav class="flex flex-col items-center space-y-2">
+                        <a href="/" class="hover:text-blue-600">Home</a>
+                        <a href="/products" class="hover:text-blue-600">Products</a>
+                        <div class="flex flex-col space-y-2 w-full mt-4 pt-4 border-t border-gray-300">
+                            <a href="{{ route('login') }}" class="w-full text-center px-4 py-2 text-gray-700 hover:text-blue-600 font-medium border border-gray-300 rounded-lg">Login</a>
+                            <a href="{{ route('login') }}" class="w-full text-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">Register</a>
+                        </div>
+                    </nav>
+                @endif
             </div>
         </div>
     </header>

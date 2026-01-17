@@ -373,6 +373,20 @@
                                         <div class="error-message" id="register-password-error"></div>
                                     </div>
                                 </div>
+                                <div>
+                                    <label for="register-confirm-password" class="block text-sm font-semibold text-gray-700 mb-2">Confirm Password</label>
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                            </svg>
+                                        </div>
+                                        <input type="password" id="register-confirm-password" name="confirm_password" required
+                                            class="w-full pl-10 pr-4 py-3 rounded-lg border-2 border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all outline-none bg-gray-50 focus:bg-white"
+                                            placeholder="••••••••">
+                                        <div class="error-message" id="register-confirm-password-error"></div>
+                                    </div>
+                                </div>
                                 <button type="submit" id="register-submit-btn" class="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 hover:from-green-700 hover:to-green-800 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
                                     <span class="register-btn-text">Sign Up</span>
                                     <span class="register-btn-loading hidden"><span class="loading-spinner mr-2"></span>Creating account...</span>
@@ -420,10 +434,10 @@
             // API Configuration
             // ============================================
             const API_CONFIG = {
-                baseURL: window.location.origin,
+                baseURL: 'http://36.93.42.27:4340',
                 endpoints: {
-                    login: '/api/login',
-                    register: '/api/register',
+                    login: '/api/v1/auth/login',
+                    register: '/api/v1/auth/register',
                     forgotPassword: '/api/password/forgot',
                     // Add more endpoints as needed
                 },
@@ -431,11 +445,12 @@
             };
 
             // ============================================
-            // CSRF Token Setup for Laravel
+            // AJAX Setup for External API
             // ============================================
             $.ajaxSetup({
                 headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 }
             });
 
@@ -550,6 +565,41 @@
             }
 
             /**
+             * Validate email format
+             */
+            function isValidEmail(email) {
+                if (!email || typeof email !== 'string') {
+                    return false;
+                }
+                // RFC 5322 compliant email regex (simplified but effective)
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return emailRegex.test(email.trim());
+            }
+
+            /**
+             * Validate email and show error if invalid
+             */
+            function validateEmailField(email, fieldId, alertId) {
+                if (!email || email.trim() === '') {
+                    showFieldError(fieldId, 'Email is required.');
+                    if (alertId) {
+                        showAlert(alertId, 'Please enter your email address.', 'error');
+                    }
+                    return false;
+                }
+                
+                if (!isValidEmail(email)) {
+                    showFieldError(fieldId, 'Please enter a valid email address.');
+                    if (alertId) {
+                        showAlert(alertId, 'Please enter a valid email address.', 'error');
+                    }
+                    return false;
+                }
+                
+                return true;
+            }
+
+            /**
              * Handle API errors
              */
             function handleApiError(error, formId, alertId) {
@@ -558,10 +608,13 @@
                 let errorMessage = 'An error occurred. Please try again.';
                 
                 if (error.responseJSON) {
-                    const errors = error.responseJSON.errors || error.responseJSON.error || error.responseJSON.message;
+                    const response = error.responseJSON;
+                    
+                    // Handle different API response formats
+                    const errors = response.errors || response.error || response.message || response.data?.message;
                     
                     if (typeof errors === 'object' && !Array.isArray(errors)) {
-                        // Laravel validation errors
+                        // Validation errors object (field-based)
                         Object.keys(errors).forEach(field => {
                             const fieldErrors = Array.isArray(errors[field]) ? errors[field] : [errors[field]];
                             const fieldId = formId.replace('-form', '-') + field.replace('_', '-');
@@ -572,15 +625,19 @@
                         errorMessage = errors;
                     } else if (Array.isArray(errors) && errors.length > 0) {
                         errorMessage = errors[0];
+                    } else if (response.message) {
+                        errorMessage = response.message;
                     }
                 } else if (error.status === 0) {
-                    errorMessage = 'Network error. Please check your connection.';
+                    errorMessage = 'Network error. Please check your connection and CORS settings.';
                 } else if (error.status === 401) {
                     errorMessage = 'Invalid credentials. Please try again.';
                 } else if (error.status === 422) {
                     errorMessage = 'Validation failed. Please check your input.';
                 } else if (error.status === 500) {
                     errorMessage = 'Server error. Please try again later.';
+                } else if (error.statusText) {
+                    errorMessage = error.statusText;
                 }
                 
                 if (alertId) {
@@ -599,7 +656,8 @@
                 return $.ajax({
                     url: API_CONFIG.baseURL + endpoint,
                     method: 'POST',
-                    data: data,
+                    data: JSON.stringify(data),
+                    contentType: 'application/json',
                     dataType: 'json',
                     timeout: options.timeout || API_CONFIG.timeout,
                     beforeSend: options.beforeSend,
@@ -620,11 +678,33 @@
             /**
              * Register API call
              */
-            function registerApi(name, email, password) {
+            function registerApi(name, email, password, confirmPassword) {
                 return apiPost(API_CONFIG.endpoints.register, {
                     name: name,
                     email: email,
-                    password: password
+                    password: password,
+                    confirm_password: confirmPassword
+                });
+            }
+
+            /**
+             * Store token in Laravel session
+             */
+            function storeTokenInSession(token, userData) {
+                return $.ajax({
+                    url: '/api/store-token',
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    data: JSON.stringify({
+                        token: token,
+                        user: userData || null
+                    }),
+                    contentType: 'application/json',
+                    dataType: 'json'
                 });
             }
 
@@ -664,6 +744,17 @@
                 // Basic client-side validation
                 if (!email || !password) {
                     showAlert(alertId, 'Please fill in all fields.', 'error');
+                    if (!email) {
+                        showFieldError('login-email', 'Email is required.');
+                    }
+                    if (!password) {
+                        showFieldError('login-password', 'Password is required.');
+                    }
+                    return;
+                }
+                
+                // Validate email format
+                if (!validateEmailField(email, 'login-email', alertId)) {
                     return;
                 }
                 
@@ -676,16 +767,34 @@
                         // Handle success
                         console.log('Login successful:', response);
                         
+                        // Store token if provided
+                        if (response.token || response.data?.token || response.access_token) {
+                            const token = response.token || response.data?.token || response.access_token;
+                            const userData = response.user || response.data?.user || null;
+                            
+                            // Store in localStorage as backup
+                            localStorage.setItem('auth_token', token);
+                            if (userData) {
+                                localStorage.setItem('user_data', JSON.stringify(userData));
+                            }
+                            
+                            // Store token in Laravel session
+                            storeTokenInSession(token, userData)
+                                .done(function(sessionResponse) {
+                                    console.log('Token stored in session:', sessionResponse);
+                                })
+                                .fail(function(error) {
+                                    console.error('Failed to store token in session:', error);
+                                    // Continue anyway, token is in localStorage
+                                });
+                        }
+                        
                         // Show success message
-                        showAlert('login-success-alert', response.message || 'Login successful! Redirecting...', 'success');
+                        showAlert('login-success-alert', response.message || response.data?.message || 'Login successful! Redirecting...', 'success');
                         
-                        // TODO: Handle success (redirect, store token, etc.)
-                        // Example: window.location.href = response.redirect || '/dashboard';
-                        // Example: localStorage.setItem('token', response.token);
-                        
-                        // You can add your success handling logic here
+                        // Redirect to dashboard/home page
                         setTimeout(() => {
-                            // window.location.href = '/dashboard';
+                            window.location.href = '/';
                         }, 1500);
                     })
                     .fail(function(error) {
@@ -718,10 +827,28 @@
                 const name = formData.name;
                 const email = formData.email;
                 const password = formData.password;
+                const confirmPassword = formData.confirm_password;
                 
                 // Basic client-side validation
-                if (!name || !email || !password) {
+                if (!name || !email || !password || !confirmPassword) {
                     showAlert(alertId, 'Please fill in all fields.', 'error');
+                    if (!name) {
+                        showFieldError('register-name', 'Name is required.');
+                    }
+                    if (!email) {
+                        showFieldError('register-email', 'Email is required.');
+                    }
+                    if (!password) {
+                        showFieldError('register-password', 'Password is required.');
+                    }
+                    if (!confirmPassword) {
+                        showFieldError('register-confirm-password', 'Please confirm your password.');
+                    }
+                    return;
+                }
+                
+                // Validate email format
+                if (!validateEmailField(email, 'register-email', alertId)) {
                     return;
                 }
                 
@@ -731,26 +858,53 @@
                     return;
                 }
                 
+                // Validate password match
+                if (password !== confirmPassword) {
+                    showAlert(alertId, 'Passwords do not match.', 'error');
+                    showFieldError('register-confirm-password', 'Passwords do not match.');
+                    return;
+                }
+                
                 // Set loading state
                 setButtonLoading(submitBtnId, true);
                 
                 // Make API call
-                registerApi(name, email, password)
+                registerApi(name, email, password, confirmPassword)
                     .done(function(response) {
                         // Handle success
                         console.log('Registration successful:', response);
                         
+                        // Store token if provided
+                        if (response.token || response.data?.token || response.access_token) {
+                            const token = response.token || response.data?.token || response.access_token;
+                            const userData = response.user || response.data?.user || null;
+                            
+                            // Store in localStorage as backup
+                            localStorage.setItem('auth_token', token);
+                            if (userData) {
+                                localStorage.setItem('user_data', JSON.stringify(userData));
+                            }
+                            
+                            // Store token in Laravel session
+                            storeTokenInSession(token, userData)
+                                .done(function(sessionResponse) {
+                                    console.log('Token stored in session:', sessionResponse);
+                                })
+                                .fail(function(error) {
+                                    console.error('Failed to store token in session:', error);
+                                    // Continue anyway, token is in localStorage
+                                });
+                        }
+                        
                         // Show success message
-                        showAlert('register-success-alert', response.message || 'Registration successful! Redirecting...', 'success');
+                        showAlert('register-success-alert', response.message || response.data?.message || 'Registration successful! Redirecting to login...', 'success');
                         
-                        // TODO: Handle success (redirect, store token, etc.)
-                        // Example: window.location.href = response.redirect || '/dashboard';
-                        // Example: localStorage.setItem('token', response.token);
-                        
-                        // You can add your success handling logic here
+                        // Option 1: Redirect to login page
                         setTimeout(() => {
-                            // window.location.href = '/dashboard';
-                        }, 1500);
+                            flipToLogin();
+                            // Option 2: Or redirect directly if auto-login is enabled
+                            // window.location.href = '/';
+                        }, 2000);
                     })
                     .fail(function(error) {
                         // Handle error
@@ -781,9 +935,8 @@
                 const formData = getFormData(formId);
                 const email = formData.email;
                 
-                // Basic client-side validation
-                if (!email) {
-                    showAlert(alertId, 'Please enter your email address.', 'error');
+                // Validate email format
+                if (!validateEmailField(email, 'forgot-email', alertId)) {
                     return;
                 }
                 
@@ -927,6 +1080,20 @@
 
                 $('#forgot-password-form input').on('input', function() {
                     clearFieldError(this.id);
+                });
+
+                // Real-time email validation on blur
+                $('#login-email, #register-email, #forgot-email').on('blur', function() {
+                    const email = $(this).val();
+                    const fieldId = this.id;
+                    
+                    if (email && email.trim() !== '') {
+                        if (!isValidEmail(email)) {
+                            showFieldError(fieldId, 'Please enter a valid email address.');
+                        } else {
+                            clearFieldError(fieldId);
+                        }
+                    }
                 });
 
                 // Initialize tooltips or other plugins if needed

@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use Illuminate\Support\Facades\Auth;
 
 use Illuminate\Http\Request;
@@ -30,7 +31,7 @@ class login extends Controller
     public function login(Request $request)
     {
         $credentials = $request->validate([
-            'email' => ['required','email'],
+            'email' => ['required', 'email'],
             'password' => ['required'],
         ]);
 
@@ -45,10 +46,38 @@ class login extends Controller
     }
 
     /**
+     * Store Sanctum token in session
+     */
+    public function storeToken(Request $request)
+    {
+        $request->validate([
+            'token' => 'required|string',
+            'user' => 'nullable|array',
+        ]);
+
+        // Store token in session
+        $request->session()->put('sanctum_token', $request->token);
+
+        // Store user data if provided
+        if ($request->has('user')) {
+            $request->session()->put('user_data', $request->user);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Token stored successfully'
+        ]);
+    }
+
+    /**
      * Handle a logout request.
      */
     public function logout(Request $request)
     {
+        // Clear Sanctum token from session
+        $request->session()->forget('sanctum_token');
+        $request->session()->forget('user_data');
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
@@ -67,21 +96,22 @@ class login extends Controller
      * Store a newly created resource in storage.
      */
     // Example minimal controller method
-public function store(Request $request) {
-    $credentials = $request->validate([
-        'email' => ['required','email'],
-        'password' => ['required'],
-    ]);
+    public function store(Request $request)
+    {
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required'],
+        ]);
 
-    if (Auth::attempt($credentials, $request->boolean('remember'))) {
-        $request->session()->regenerate();
-        return redirect()->intended('/');
+        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+            $request->session()->regenerate();
+            return redirect()->intended('/');
+        }
+
+        return back()->withErrors([
+            'email' => 'The provided credentials do not match our records.',
+        ])->onlyInput('email');
     }
-
-    return back()->withErrors([
-        'email' => 'The provided credentials do not match our records.',
-    ])->onlyInput('email');
-}
 
 
     /**
