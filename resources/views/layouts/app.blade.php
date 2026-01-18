@@ -249,9 +249,15 @@
     </script>
     
     <!-- Footer -->
-    <footer class="bg-gray-900 text-gray-300 text-center py-4">
-        © {{ date('Y') }} MyShop Dashboard. All rights reserved.
-    </footer>
+    @include('layouts.footer')
+    
+    <!-- Scroll to Top Button -->
+    <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" 
+            class="fixed bottom-4 right-4 bg-gray-800 text-white p-3 rounded-full shadow-lg hover:bg-gray-700 transition-colors z-50">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+        </svg>
+    </button>
 
 </body>
 
