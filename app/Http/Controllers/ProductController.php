@@ -12,7 +12,7 @@ class ProductController extends Controller
      */
     public function index()
     {
-        return view('pages.products');
+        return view('public.pages.products');
     }
 
     /**
@@ -25,7 +25,7 @@ class ProductController extends Controller
         // Sample products data - in a real app, this would come from a database
         $products = $this->getProductsByCategory($category);
         
-        return view('pages.category', [
+        return view('public.pages.category', [
             'category' => $category,
             'categoryName' => $categoryName,
             'products' => $products
@@ -44,7 +44,7 @@ class ProductController extends Controller
             abort(404);
         }
         
-        return view('pages.product-detail', [
+        return view('public.pages.product-detail', [
             'product' => $product
         ]);
     }

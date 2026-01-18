@@ -14,7 +14,7 @@ class login extends Controller
     public function index()
     {
         //
-        return view('login');
+        return view('public.login');
     }
 
     /**
@@ -22,7 +22,7 @@ class login extends Controller
      */
     public function showLoginForm()
     {
-        return view('login');
+        return view('public.login');
     }
 
     /**

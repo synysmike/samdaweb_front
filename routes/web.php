@@ -42,3 +42,14 @@ Route::get('/sell-on-begja', [PageController::class, 'sellOnBegja'])->name('sell
 Route::get('/seller-agreement', [PageController::class, 'sellerAgreement'])->name('seller-agreement');
 Route::get('/fees-commission', [PageController::class, 'feesCommission'])->name('fees-commission');
 Route::get('/listing-guidelines', [PageController::class, 'listingGuidelines'])->name('listing-guidelines');
+
+// Admin Routes
+Route::prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', function () {
+        return view('admin.dashboard.index');
+    })->name('dashboard');
+    
+    // Theme Management Routes
+    Route::get('/themes', [App\Http\Controllers\Admin\ThemeController::class, 'index'])->name('themes.index');
+    Route::post('/themes', [App\Http\Controllers\Admin\ThemeController::class, 'update'])->name('themes.update');
+});
