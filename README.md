@@ -2,9 +2,9 @@
 
 <div align="center">
 
-![Ir Teguh Solution Logo](./logo.png)
+![Ir Teguh Solution Logo](https://postimg.cc/wyr9Sfk6)
 
-**Created by [Ir Teguh Solution](https://github.com/irteguhsolution)**
+**Created by [Ir Teguh Solution](https://github.com/synysmike)**
 
 A modern, full-featured e-commerce platform built with Laravel 11 and Tailwind CSS.
 
@@ -322,10 +322,10 @@ This project is open-sourced software licensed under the [MIT license](LICENSE).
 
 ### Ir Teguh Solution
 
-![Ir Teguh Solution Logo](./logo.png)
+![Ir Teguh Solution Logo](https://postimg.cc/wyr9Sfk6)
 
 **Website**: [Ir Teguh Solution](https://irteguhsolution.com)  
-**GitHub**: [@irteguhsolution](https://github.com/irteguhsolution)
+**GitHub**: [@irteguhsolution](https://github.com/synysmike)
 
 </div>
 
