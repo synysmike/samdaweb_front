@@ -28,6 +28,9 @@
                 <a href="{{ route('admin.themes.index') }}" class="block px-4 py-2 rounded {{ request()->routeIs('admin.themes.*') ? 'bg-gray-700' : 'hover:bg-gray-700' }} transition-colors">
                     Themes
                 </a>
+                <a href="{{ route('admin.users.index') }}" class="block px-4 py-2 rounded {{ request()->routeIs('admin.users.*') ? 'bg-gray-700' : 'hover:bg-gray-700' }} transition-colors">
+                    Users
+                </a>
                 <!-- Add more navigation items here -->
             </nav>
             
@@ -130,5 +133,8 @@
             </div>
         </main>
     </div>
+    
+    @stack('styles')
+    @stack('scripts')
 </body>
 </html>

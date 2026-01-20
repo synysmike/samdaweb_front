@@ -15,7 +15,7 @@
 
     <!-- Header -->
     <header class="shadow-md theme-navbar" x-data="{ open: false, userDropdownOpen: false }" style="background-color: #8b5cf6;">
-            @php
+        @php
             $isLoggedIn = session()->has('sanctum_token');
             $userData = session('user_data', null);
             $userName = $userData['name'] ?? ($userData['name'] ?? 'User');
