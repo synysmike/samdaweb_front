@@ -436,10 +436,10 @@
             // API Configuration
             // ============================================
             const API_CONFIG = {
-                baseURL: 'http://36.93.42.27:4340',
+                baseURL: '{{ config("api.base_url") }}',
                 endpoints: {
-                    login: '/api/v1/auth/login',
-                    register: '/api/v1/auth/register',
+                    login: '{{ config("api.endpoints.auth.login") }}',
+                    register: '{{ config("api.endpoints.auth.register") }}',
                     forgotPassword: '/api/password/forgot',
                     // Add more endpoints as needed
                 },

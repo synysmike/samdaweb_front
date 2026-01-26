@@ -31,7 +31,47 @@
             $userData = session('user_data', null);
             $userName = $userData['name'] ?? 'User';
             $userEmail = $userData['email'] ?? '';
-            $userImage = $userData['profile_picture'] ?? $userData['image'] ?? $userData['avatar'] ?? null;
+            // Prioritize profile_picture, then image, then avatar
+            $userImageRaw = null;
+            if (isset($userData['profile_picture']) && !empty($userData['profile_picture'])) {
+                $userImageRaw = $userData['profile_picture'];
+            } elseif (isset($userData['image']) && !empty($userData['image'])) {
+                $userImageRaw = $userData['image'];
+            } elseif (isset($userData['avatar']) && !empty($userData['avatar'])) {
+                $userImageRaw = $userData['avatar'];
+            }
+            
+            // Convert API storage path/URL to full URL for display
+            $apiBaseUrl = config('api.base_url');
+            $userImage = null;
+            if ($userImageRaw) {
+                // If it's already a full URL (data URL or http/https), use as is
+                if (str_starts_with($userImageRaw, 'data:') || str_starts_with($userImageRaw, 'http://') || str_starts_with($userImageRaw, 'https://')) {
+                    $userImage = $userImageRaw;
+                } 
+                // If it starts with /, it's an absolute path from API storage
+                elseif (str_starts_with($userImageRaw, '/')) {
+                    // If path is /cover_images/ or /profile_pictures/, add /storage prefix
+                    if (str_starts_with($userImageRaw, '/cover_images/') || str_starts_with($userImageRaw, '/profile_pictures/')) {
+                        $userImage = rtrim($apiBaseUrl, '/') . '/storage' . $userImageRaw;
+                    } else {
+                        $userImage = rtrim($apiBaseUrl, '/') . $userImageRaw;
+                    }
+                } 
+                // If it contains / or ., it's a relative path from API storage
+                elseif (str_contains($userImageRaw, '/') || str_contains($userImageRaw, '.')) {
+                    // If path starts with cover_images/ or profile_pictures/, add /storage prefix
+                    if (str_starts_with($userImageRaw, 'cover_images/') || str_starts_with($userImageRaw, 'profile_pictures/')) {
+                        $userImage = rtrim($apiBaseUrl, '/') . '/storage/' . ltrim($userImageRaw, '/');
+                    } else {
+                        $userImage = rtrim($apiBaseUrl, '/') . '/' . ltrim($userImageRaw, '/');
+                    }
+                } 
+                // Otherwise, assume it's base64 (shouldn't happen after API save, but handle it)
+                else {
+                    $userImage = 'data:image/jpeg;base64,' . $userImageRaw;
+                }
+            }
         @endphp
         
         <div class="container mx-auto flex justify-between items-center py-4 px-6 gap-4">

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 use Illuminate\Http\Request;
 
@@ -121,6 +123,33 @@ class login extends Controller
             $mergedUserData['roles'] = (string) $request->input('roles');
         }
         
+        // Handle profile_picture and cover_image - download from API and save to local storage if needed
+        $apiBaseUrl = config('api.base_url');
+        
+        // Handle profile_picture
+        if (isset($mergedUserData['profile_picture']) && !empty($mergedUserData['profile_picture'])) {
+            $profilePicturePath = $this->downloadAndSaveImage(
+                $mergedUserData['profile_picture'],
+                $apiBaseUrl,
+                'profile_pictures'
+            );
+            if ($profilePicturePath) {
+                $mergedUserData['profile_picture'] = $profilePicturePath;
+            }
+        }
+        
+        // Handle cover_image
+        if (isset($mergedUserData['cover_image']) && !empty($mergedUserData['cover_image'])) {
+            $coverImagePath = $this->downloadAndSaveImage(
+                $mergedUserData['cover_image'],
+                $apiBaseUrl,
+                'cover_images'
+            );
+            if ($coverImagePath) {
+                $mergedUserData['cover_image'] = $coverImagePath;
+            }
+        }
+        
         // Store merged user data in session
         if (!empty($mergedUserData)) {
             $request->session()->put('user_data', $mergedUserData);
@@ -172,7 +201,7 @@ class login extends Controller
                     'Authorization' => 'Bearer ' . $token,
                     'Accept' => 'application/json',
                     'Content-Type' => 'application/json',
-                ])->post('http://36.93.42.27:4340/api/v1/auth/logout');
+                ])->post(config('api.base_url') . config('api.endpoints.auth.logout'));
             } catch (\Exception $e) {
                 // Log error but continue with logout process
                 \Log::error('Logout API call failed: ' . $e->getMessage());
@@ -249,5 +278,79 @@ class login extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    /**
+     * Download image from API and save to local storage
+     * Returns local storage path if successful, original path otherwise
+     */
+    private function downloadAndSaveImage($imagePath, $apiBaseUrl, $storageFolder)
+    {
+        try {
+            // If it's already a local storage path (starts with profile_pictures/ or cover_images/), return as is
+            if (str_starts_with($imagePath, 'profile_pictures/') || str_starts_with($imagePath, 'cover_images/')) {
+                // Check if file exists in local storage
+                if (Storage::disk('public')->exists($imagePath)) {
+                    return $imagePath;
+                }
+            }
+            
+            // If it's already a data URL or full URL (not from our API), skip
+            if (str_starts_with($imagePath, 'data:') || 
+                (str_starts_with($imagePath, 'http://') && !str_contains($imagePath, $apiBaseUrl)) ||
+                (str_starts_with($imagePath, 'https://') && !str_contains($imagePath, $apiBaseUrl))) {
+                return $imagePath; // Return as is, might be external URL
+            }
+            
+            // Build full URL from API
+            $imageUrl = $imagePath;
+            if (!str_starts_with($imagePath, 'http://') && !str_starts_with($imagePath, 'https://')) {
+                // It's a relative path, prepend API base URL
+                $imageUrl = rtrim($apiBaseUrl, '/') . '/' . ltrim($imagePath, '/');
+            }
+            
+            // Download image from API
+            $response = Http::timeout(10)->get($imageUrl);
+            
+            if (!$response->successful()) {
+                \Log::warning('Failed to download image from API', [
+                    'url' => $imageUrl,
+                    'status' => $response->status()
+                ]);
+                return $imagePath; // Return original path if download fails
+            }
+            
+            $imageData = $response->body();
+            
+            // Validate image size (max 1MB)
+            if (strlen($imageData) > 1048576) {
+                \Log::warning('Image too large, skipping download', [
+                    'url' => $imageUrl,
+                    'size' => strlen($imageData)
+                ]);
+                return $imagePath; // Return original path if too large
+            }
+            
+            // Generate unique filename
+            $extension = pathinfo($imagePath, PATHINFO_EXTENSION) ?: 'jpg';
+            $filename = $storageFolder . '/' . Str::uuid() . '.' . $extension;
+            
+            // Save to public storage
+            Storage::disk('public')->put($filename, $imageData);
+            
+            \Log::info('Image downloaded and saved to local storage', [
+                'original' => $imagePath,
+                'local_path' => $filename
+            ]);
+            
+            return $filename;
+            
+        } catch (\Exception $e) {
+            \Log::error('Error downloading image from API', [
+                'image_path' => $imagePath,
+                'error' => $e->getMessage()
+            ]);
+            return $imagePath; // Return original path if error occurs
+        }
     }
 }

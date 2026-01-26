@@ -20,6 +20,13 @@ class ProfileController extends Controller
      */
     public function update(Request $request)
     {
+        // Get JSON data from request body if Content-Type is application/json
+        $jsonData = [];
+        if ($request->isJson()) {
+            $jsonData = $request->json()->all();
+            $request->merge($jsonData);
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
@@ -28,8 +35,8 @@ class ProfileController extends Controller
             'notify_on_message' => 'nullable',
             'show_email' => 'nullable',
             'show_phone_number' => 'nullable',
-            'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
-            'cover_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
+            'profile_picture' => 'nullable|string', // Base64 string, not file
+            'cover_image' => 'nullable|string', // Base64 string, not file
         ]);
 
         // Get bearer token from session
@@ -59,43 +66,242 @@ class ProfileController extends Controller
         }
 
         // Boolean fields - convert to boolean or null
-        $data['notify_on_message'] = $request->has('notify_on_message') && $request->notify_on_message == '1' ? true : null;
-        $data['show_email'] = $request->has('show_email') && $request->show_email == '1' ? true : null;
-        $data['show_phone_number'] = $request->has('show_phone_number') && $request->show_phone_number == '1' ? true : null;
+        $data['notify_on_message'] = $request->has('notify_on_message') && ($request->notify_on_message === true || $request->notify_on_message === '1' || $request->notify_on_message === 1) ? true : null;
+        $data['show_email'] = $request->has('show_email') && ($request->show_email === true || $request->show_email === '1' || $request->show_email === 1) ? true : null;
+        $data['show_phone_number'] = $request->has('show_phone_number') && ($request->show_phone_number === true || $request->show_phone_number === '1' || $request->show_phone_number === 1) ? true : null;
 
-        // Handle profile picture upload and convert to base64
-        if ($request->hasFile('profile_picture')) {
-            $profilePicture = $request->file('profile_picture');
-            // Validate file size (5MB = 5242880 bytes)
-            if ($profilePicture->getSize() > 5242880) {
-                return back()->withErrors(['error' => 'Profile picture size must be less than 5MB.'])->withInput();
+        // Handle profile picture - validate base64 and send to API
+        if ($request->filled('profile_picture') && $request->input('profile_picture') !== null) {
+            $profilePictureInput = $request->input('profile_picture');
+            
+            // Validate base64 string
+            if (is_string($profilePictureInput) && !$request->hasFile('profile_picture')) {
+                // Remove any data URL prefix if present (data:image/...;base64,)
+                $base64String = $profilePictureInput;
+                if (str_contains($base64String, ',')) {
+                    $base64String = explode(',', $base64String)[1];
+                }
+                
+                // Remove any whitespace or newlines
+                $base64String = preg_replace('/\s+/', '', $base64String);
+                
+                // Validate base64 string size (1MB = 1048576 bytes, base64 is ~33% larger)
+                $maxBase64Length = 1400000; // ~1MB file when decoded
+                if (strlen($base64String) > $maxBase64Length) {
+                    $errorMsg = 'Profile picture size must be less than 1MB.';
+                    if ($request->wantsJson() || $request->ajax()) {
+                        return response()->json([
+                            'success' => false,
+                            'status' => 'error',
+                            'message' => $errorMsg
+                        ], 422);
+                    }
+                    return back()->withErrors(['error' => $errorMsg])->withInput();
+                }
+                
+                // Validate base64 format and check if it's an image
+                try {
+                    $imageData = base64_decode($base64String, true);
+                    if ($imageData === false) {
+                        throw new \Exception('Invalid base64 data');
+                    }
+                    
+                    // Validate file size (decoded)
+                    if (strlen($imageData) > 1048576) {
+                        $errorMsg = 'Profile picture size must be less than 1MB.';
+                        if ($request->wantsJson() || $request->ajax()) {
+                            return response()->json([
+                                'success' => false,
+                                'status' => 'error',
+                                'message' => $errorMsg
+                            ], 422);
+                        }
+                        return back()->withErrors(['error' => $errorMsg])->withInput();
+                    }
+                    
+                    // Validate image type by checking magic bytes
+                    $imageInfo = @getimagesizefromstring($imageData);
+                    if ($imageInfo === false) {
+                        throw new \Exception('Invalid image file');
+                    }
+                    
+                    $allowedTypes = [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_GIF, IMAGETYPE_WEBP];
+                    if (!in_array($imageInfo[2], $allowedTypes)) {
+                        throw new \Exception('Only JPEG, PNG, GIF, and WebP images are allowed');
+                    }
+                    
+                    // Send clean base64 string (without prefix) to API
+                    $data['profile_picture'] = $base64String;
+                } catch (\Exception $e) {
+                    \Log::error('Error validating profile picture: ' . $e->getMessage());
+                    $errorMsg = 'Invalid image file. Only JPEG, PNG, GIF, and WebP images are allowed.';
+                    if ($request->wantsJson() || $request->ajax()) {
+                        return response()->json([
+                            'success' => false,
+                            'status' => 'error',
+                            'message' => $errorMsg
+                        ], 422);
+                    }
+                    return back()->withErrors(['error' => $errorMsg])->withInput();
+                }
+            } elseif ($request->hasFile('profile_picture')) {
+                // Fallback: handle file upload (for non-AJAX requests)
+                $profilePicture = $request->file('profile_picture');
+                
+                // Validate file type
+                $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                if (!in_array($profilePicture->getMimeType(), $allowedMimes)) {
+                    $errorMsg = 'Only JPEG, PNG, GIF, and WebP images are allowed.';
+                    if ($request->wantsJson() || $request->ajax()) {
+                        return response()->json([
+                            'success' => false,
+                            'status' => 'error',
+                            'message' => $errorMsg
+                        ], 422);
+                    }
+                    return back()->withErrors(['error' => $errorMsg])->withInput();
+                }
+                
+                // Validate file size
+                if ($profilePicture->getSize() > 1048576) {
+                    $errorMsg = 'Profile picture size must be less than 1MB.';
+                    if ($request->wantsJson() || $request->ajax()) {
+                        return response()->json([
+                            'success' => false,
+                            'status' => 'error',
+                            'message' => $errorMsg
+                        ], 422);
+                    }
+                    return back()->withErrors(['error' => $errorMsg])->withInput();
+                }
+                
+                // Convert to base64 (clean, without prefix)
+                $data['profile_picture'] = base64_encode(file_get_contents($profilePicture->getRealPath()));
             }
-            $profilePictureBase64 = base64_encode(file_get_contents($profilePicture->getRealPath()));
-            $data['profile_picture'] = $profilePictureBase64;
         } else {
             $data['profile_picture'] = null;
         }
 
-        // Handle cover image upload and convert to base64
-        if ($request->hasFile('cover_image')) {
-            $coverImage = $request->file('cover_image');
-            // Validate file size (5MB = 5242880 bytes)
-            if ($coverImage->getSize() > 5242880) {
-                return back()->withErrors(['error' => 'Cover image size must be less than 5MB.'])->withInput();
+        // Handle cover image - validate base64 and send to API
+        if ($request->filled('cover_image') && $request->input('cover_image') !== null) {
+            $coverImageInput = $request->input('cover_image');
+            
+            // Validate base64 string
+            if (is_string($coverImageInput) && !$request->hasFile('cover_image')) {
+                // Remove any data URL prefix if present (data:image/...;base64,)
+                $base64String = $coverImageInput;
+                if (str_contains($base64String, ',')) {
+                    $base64String = explode(',', $base64String)[1];
+                }
+                
+                // Remove any whitespace or newlines
+                $base64String = preg_replace('/\s+/', '', $base64String);
+                
+                // Validate base64 string size (1MB = 1048576 bytes, base64 is ~33% larger)
+                $maxBase64Length = 1400000; // ~1MB file when decoded
+                if (strlen($base64String) > $maxBase64Length) {
+                    $errorMsg = 'Cover image size must be less than 1MB.';
+                    if ($request->wantsJson() || $request->ajax()) {
+                        return response()->json([
+                            'success' => false,
+                            'status' => 'error',
+                            'message' => $errorMsg
+                        ], 422);
+                    }
+                    return back()->withErrors(['error' => $errorMsg])->withInput();
+                }
+                
+                // Validate base64 format and check if it's an image
+                try {
+                    $imageData = base64_decode($base64String, true);
+                    if ($imageData === false) {
+                        throw new \Exception('Invalid base64 data');
+                    }
+                    
+                    // Validate file size (decoded)
+                    if (strlen($imageData) > 1048576) {
+                        $errorMsg = 'Cover image size must be less than 1MB.';
+                        if ($request->wantsJson() || $request->ajax()) {
+                            return response()->json([
+                                'success' => false,
+                                'status' => 'error',
+                                'message' => $errorMsg
+                            ], 422);
+                        }
+                        return back()->withErrors(['error' => $errorMsg])->withInput();
+                    }
+                    
+                    // Validate image type by checking magic bytes
+                    $imageInfo = @getimagesizefromstring($imageData);
+                    if ($imageInfo === false) {
+                        throw new \Exception('Invalid image file');
+                    }
+                    
+                    $allowedTypes = [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_GIF, IMAGETYPE_WEBP];
+                    if (!in_array($imageInfo[2], $allowedTypes)) {
+                        throw new \Exception('Only JPEG, PNG, GIF, and WebP images are allowed');
+                    }
+                    
+                    // Send clean base64 string (without prefix) to API
+                    $data['cover_image'] = $base64String;
+                } catch (\Exception $e) {
+                    \Log::error('Error validating cover image: ' . $e->getMessage());
+                    $errorMsg = 'Invalid image file. Only JPEG, PNG, GIF, and WebP images are allowed.';
+                    if ($request->wantsJson() || $request->ajax()) {
+                        return response()->json([
+                            'success' => false,
+                            'status' => 'error',
+                            'message' => $errorMsg
+                        ], 422);
+                    }
+                    return back()->withErrors(['error' => $errorMsg])->withInput();
+                }
+            } elseif ($request->hasFile('cover_image')) {
+                // Fallback: handle file upload (for non-AJAX requests)
+                $coverImage = $request->file('cover_image');
+                
+                // Validate file type
+                $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                if (!in_array($coverImage->getMimeType(), $allowedMimes)) {
+                    $errorMsg = 'Only JPEG, PNG, GIF, and WebP images are allowed.';
+                    if ($request->wantsJson() || $request->ajax()) {
+                        return response()->json([
+                            'success' => false,
+                            'status' => 'error',
+                            'message' => $errorMsg
+                        ], 422);
+                    }
+                    return back()->withErrors(['error' => $errorMsg])->withInput();
+                }
+                
+                // Validate file size
+                if ($coverImage->getSize() > 1048576) {
+                    $errorMsg = 'Cover image size must be less than 1MB.';
+                    if ($request->wantsJson() || $request->ajax()) {
+                        return response()->json([
+                            'success' => false,
+                            'status' => 'error',
+                            'message' => $errorMsg
+                        ], 422);
+                    }
+                    return back()->withErrors(['error' => $errorMsg])->withInput();
+                }
+                
+                // Convert to base64 (clean, without prefix)
+                $data['cover_image'] = base64_encode(file_get_contents($coverImage->getRealPath()));
             }
-            $coverImageBase64 = base64_encode(file_get_contents($coverImage->getRealPath()));
-            $data['cover_image'] = $coverImageBase64;
         } else {
             $data['cover_image'] = null;
         }
 
         // Make API request
         try {
+            $apiBaseUrl = config('api.base_url');
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $token,
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
-            ])->post('http://36.93.42.27:4340/api/v1/settings/update-profile', $data);
+            ])->post($apiBaseUrl . config('api.endpoints.settings.update_profile'), $data);
 
             if ($response->successful()) {
                 $responseData = $response->json();
@@ -120,16 +326,43 @@ class ProfileController extends Controller
                 $currentUserData['show_email'] = $data['show_email'];
                 $currentUserData['show_phone_number'] = $data['show_phone_number'];
 
-                // Update images if uploaded
-                if ($request->hasFile('profile_picture')) {
-                    // Store the base64 string temporarily or get URL from API response
-                    // For now, we'll keep the existing image URL if API doesn't return new one
-                }
-                if ($request->hasFile('cover_image')) {
-                    // Same as above
+                // Update images from API response (API returns storage URL/path)
+                if (isset($responseData['data'])) {
+                    $apiData = $responseData['data'];
+                    
+                    // Update profile_picture from API response (should be storage URL/path from API)
+                    if (isset($apiData['profile']) && isset($apiData['profile']['profile_picture'])) {
+                        $currentUserData['profile_picture'] = $apiData['profile']['profile_picture'];
+                    } elseif (isset($apiData['profile_picture'])) {
+                        $currentUserData['profile_picture'] = $apiData['profile_picture'];
+                    } elseif ($request->input('profile_picture') === null) {
+                        // User removed the image
+                        $currentUserData['profile_picture'] = null;
+                    }
+                    // If not in API response and not null in request, keep existing value
+                    
+                    // Update cover_image from API response (should be storage URL/path from API)
+                    if (isset($apiData['profile']) && isset($apiData['profile']['cover_image'])) {
+                        $currentUserData['cover_image'] = $apiData['profile']['cover_image'];
+                    } elseif (isset($apiData['cover_image'])) {
+                        $currentUserData['cover_image'] = $apiData['cover_image'];
+                    } elseif ($request->input('cover_image') === null) {
+                        // User removed the image
+                        $currentUserData['cover_image'] = null;
+                    }
+                    // If not in API response and not null in request, keep existing value
+                } else {
+                    // Fallback: if API doesn't return data, handle based on request
+                    if ($request->input('profile_picture') === null) {
+                        $currentUserData['profile_picture'] = null;
+                    }
+                    if ($request->input('cover_image') === null) {
+                        $currentUserData['cover_image'] = null;
+                    }
                 }
 
                 session(['user_data' => $currentUserData]);
+                session()->save(); // Explicitly save session
 
                 // Return JSON response for AJAX requests
                 if ($request->wantsJson() || $request->ajax()) {
@@ -216,7 +449,7 @@ class ProfileController extends Controller
         // Make API request
         try {
             \Log::info('Change Password - Making API request', [
-                'url' => 'http://36.93.42.27:4340/api/v1/settings/change-password',
+                'url' => config('api.base_url') . config('api.endpoints.settings.change_password'),
                 'has_auth_header' => !empty($token),
             ]);
 
@@ -224,7 +457,7 @@ class ProfileController extends Controller
                 'Authorization' => 'Bearer ' . $token,
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
-            ])->post('http://36.93.42.27:4340/api/v1/settings/change-password', $data);
+            ])->post(config('api.base_url') . config('api.endpoints.settings.change_password'), $data);
 
             \Log::info('Change Password - API Response', [
                 'status' => $response->status(),
@@ -300,7 +533,7 @@ class ProfileController extends Controller
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $token,
                 'Accept' => 'application/json',
-            ])->get('http://36.93.42.27:4340/api/v1/settings/shipping-address');
+            ])->get(config('api.base_url') . config('api.endpoints.settings.shipping_address.index'));
 
             $responseData = $response->json();
 
@@ -353,7 +586,7 @@ class ProfileController extends Controller
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $token,
                 'Accept' => 'application/json',
-            ])->get('http://36.93.42.27:4340/api/v1/world/countries');
+            ])->get(config('api.base_url') . config('api.endpoints.world.countries'));
 
             $responseData = $response->json();
 
@@ -407,7 +640,7 @@ class ProfileController extends Controller
                 'Authorization' => 'Bearer ' . $token,
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
-            ])->post('http://36.93.42.27:4340/api/v1/world/states', [
+            ])->post(config('api.base_url') . config('api.endpoints.world.states'), [
                 'country_id' => $request->input('country_id')
             ]);
 
@@ -463,7 +696,7 @@ class ProfileController extends Controller
                 'Authorization' => 'Bearer ' . $token,
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
-            ])->post('http://36.93.42.27:4340/api/v1/world/cities', [
+            ])->post(config('api.base_url') . config('api.endpoints.world.cities'), [
                 'state_id' => $request->input('state_id')
             ]);
 
@@ -562,7 +795,7 @@ class ProfileController extends Controller
                 'Authorization' => 'Bearer ' . $token,
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
-            ])->post('http://36.93.42.27:4340/api/v1/settings/shipping-address/store', $data);
+            ])->post(config('api.base_url') . config('api.endpoints.settings.shipping_address.store'), $data);
 
             $responseData = $response->json();
 
@@ -615,7 +848,7 @@ class ProfileController extends Controller
                 'Authorization' => 'Bearer ' . $token,
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
-            ])->post('http://36.93.42.27:4340/api/v1/settings/shipping-address/show', [
+            ])->post(config('api.base_url') . config('api.endpoints.settings.shipping_address.show'), [
                 'id' => $id
             ]);
 
@@ -712,7 +945,7 @@ class ProfileController extends Controller
                 'Authorization' => 'Bearer ' . $token,
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
-            ])->put('http://36.93.42.27:4340/api/v1/settings/shipping-address/' . $id, $data);
+            ])->put(config('api.base_url') . config('api.endpoints.settings.shipping_address.index') . '/' . $id, $data);
 
             $responseData = $response->json();
 
@@ -765,7 +998,7 @@ class ProfileController extends Controller
                 'Authorization' => 'Bearer ' . $token,
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
-            ])->post('http://36.93.42.27:4340/api/v1/settings/shipping-address/delete', [
+            ])->post(config('api.base_url') . config('api.endpoints.settings.shipping_address.delete'), [
                 'id' => $id
             ]);
 

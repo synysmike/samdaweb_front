@@ -18,7 +18,8 @@
                 Swal.fire({
                     icon: 'success',
                     title: 'Success',
-                    text: '{{ session('success') }}',
+                    text: '{{ session('
+                    success ') }}',
                     timer: 3000,
                     showConfirmButton: false,
                     toast: true,
@@ -66,10 +67,73 @@
 
                 @php
                 $userData = session('user_data', []);
-                $coverImage = $userData['cover_image'] ?? null;
-                $profilePicture = $userData['profile_picture'] ?? $userData['image'] ?? $userData['avatar'] ?? null;
+                $coverImageRaw = $userData['cover_image'] ?? null;
+                $profilePictureRaw = $userData['profile_picture'] ?? $userData['image'] ?? $userData['avatar'] ?? null;
                 $userName = $userData['name'] ?? 'User';
                 $userInitials = strtoupper(substr($userName, 0, 1));
+
+                // Convert image path/URL to API storage URL for display
+                $apiBaseUrl = config('api.base_url');
+
+                $coverImage = null;
+                if ($coverImageRaw) {
+                    // If it's already a full URL (data URL or http/https), use as is
+                    if (str_starts_with($coverImageRaw, 'data:') || str_starts_with($coverImageRaw, 'http://') || str_starts_with($coverImageRaw, 'https://')) {
+                        $coverImage = $coverImageRaw;
+                    }
+                    // If it starts with /, it's an absolute path from API storage
+                    elseif (str_starts_with($coverImageRaw, '/')) {
+                        // If path is /cover_images/ or /profile_pictures/, add /storage prefix
+                        if (str_starts_with($coverImageRaw, '/cover_images/') || str_starts_with($coverImageRaw, '/profile_pictures/')) {
+                            $coverImage = rtrim($apiBaseUrl, '/') . '/storage' . $coverImageRaw;
+                        } else {
+                            $coverImage = rtrim($apiBaseUrl, '/') . $coverImageRaw;
+                        }
+                    }
+                    // If it contains / or ., it's a relative path from API storage
+                    elseif (str_contains($coverImageRaw, '/') || str_contains($coverImageRaw, '.')) {
+                        // If path starts with cover_images/ or profile_pictures/, add /storage prefix
+                        if (str_starts_with($coverImageRaw, 'cover_images/') || str_starts_with($coverImageRaw, 'profile_pictures/')) {
+                            $coverImage = rtrim($apiBaseUrl, '/') . '/storage/' . ltrim($coverImageRaw, '/');
+                        } else {
+                            $coverImage = rtrim($apiBaseUrl, '/') . '/' . ltrim($coverImageRaw, '/');
+                        }
+                    }
+                    // Otherwise, assume it's base64 (shouldn't happen after API save, but handle it)
+                    else {
+                        $coverImage = 'data:image/jpeg;base64,' . $coverImageRaw;
+                    }
+                }
+
+                $profilePicture = null;
+                if ($profilePictureRaw) {
+                    // If it's already a full URL (data URL or http/https), use as is
+                    if (str_starts_with($profilePictureRaw, 'data:') || str_starts_with($profilePictureRaw, 'http://') || str_starts_with($profilePictureRaw, 'https://')) {
+                        $profilePicture = $profilePictureRaw;
+                    }
+                    // If it starts with /, it's an absolute path from API storage
+                    elseif (str_starts_with($profilePictureRaw, '/')) {
+                        // If path is /cover_images/ or /profile_pictures/, add /storage prefix
+                        if (str_starts_with($profilePictureRaw, '/cover_images/') || str_starts_with($profilePictureRaw, '/profile_pictures/')) {
+                            $profilePicture = rtrim($apiBaseUrl, '/') . '/storage' . $profilePictureRaw;
+                        } else {
+                            $profilePicture = rtrim($apiBaseUrl, '/') . $profilePictureRaw;
+                        }
+                    }
+                    // If it contains / or ., it's a relative path from API storage
+                    elseif (str_contains($profilePictureRaw, '/') || str_contains($profilePictureRaw, '.')) {
+                        // If path starts with cover_images/ or profile_pictures/, add /storage prefix
+                        if (str_starts_with($profilePictureRaw, 'cover_images/') || str_starts_with($profilePictureRaw, 'profile_pictures/')) {
+                            $profilePicture = rtrim($apiBaseUrl, '/') . '/storage/' . ltrim($profilePictureRaw, '/');
+                        } else {
+                            $profilePicture = rtrim($apiBaseUrl, '/') . '/' . ltrim($profilePictureRaw, '/');
+                        }
+                    }
+                    // Otherwise, assume it's base64 (shouldn't happen after API save, but handle it)
+                    else {
+                        $profilePicture = 'data:image/jpeg;base64,' . $profilePictureRaw;
+                    }
+                }
                 @endphp
 
                 <!-- Profile Picture & Cover Image Section -->
@@ -103,7 +167,7 @@
                                 Remove
                             </button>
                         </div>
-                        <p class="text-xs text-gray-500 mt-1">Recommended size: 1200x300px. Max file size: 5MB</p>
+                        <p class="text-xs text-gray-500 mt-1">Recommended size: 1200x300px. Max file size: 1MB</p>
                     </div>
 
                     <!-- Profile Picture -->
@@ -135,7 +199,7 @@
                                 <button type="button" id="removeProfilePicture" onclick="removeProfilePicture()" class="block px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium {{ $profilePicture ? '' : 'hidden' }}">
                                     Remove
                                 </button>
-                                <p class="text-xs text-gray-500 mt-2">Recommended size: 400x400px. Max file size: 5MB</p>
+                                <p class="text-xs text-gray-500 mt-2">Recommended size: 400x400px. Max file size: 1MB</p>
                             </div>
                         </div>
                     </div>
@@ -496,65 +560,264 @@
         border-radius: 0.5rem;
         padding: 0.25rem;
     }
+
     .select2-container--default .select2-selection--single .select2-selection__rendered {
         line-height: 40px;
         padding-left: 0.75rem;
     }
+
     .select2-container--default .select2-selection--single .select2-selection__arrow {
         height: 40px;
         right: 0.5rem;
     }
+
     .select2-container {
         width: 100% !important;
     }
+
     .select2-dropdown {
         border: 1px solid #d1d5db;
         border-radius: 0.5rem;
     }
 </style>
 <script>
-    // Preview cover image
+    // Store existing images when page loads (raw values for submission)
+    let existingProfilePictureRaw = @json($profilePictureRaw ?? null);
+    let existingCoverImageRaw = @json($coverImageRaw ?? null);
+
+    // Store display URLs (already converted to data URLs in PHP)
+    let existingProfilePicture = @json($profilePicture ?? null);
+    let existingCoverImage = @json($coverImage ?? null);
+
+    // Initialize existing images on page load - replace preview with saved data
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle profile picture - replace preview with saved data
+        const profilePreviewImg = document.getElementById('profilePicturePreviewImg');
+        const profilePreview = document.getElementById('profilePicturePreview');
+        const profilePlaceholder = document.getElementById('profilePicturePlaceholder');
+        const removeBtn = document.getElementById('removeProfilePicture');
+        const profileInput = document.getElementById('profilePicture');
+
+        if (existingProfilePicture && profilePreviewImg && profilePreview && profilePlaceholder) {
+            // Replace preview with saved image
+            profilePreviewImg.src = existingProfilePicture;
+            profilePreview.classList.remove('hidden');
+            profilePlaceholder.classList.add('hidden');
+            if (removeBtn) removeBtn.classList.remove('hidden');
+
+            // Store the raw existing image (base64 or URL) for submission
+            if (existingProfilePictureRaw && profileInput) {
+                profileInput.setAttribute('data-existing', existingProfilePictureRaw);
+            }
+        } else if (!existingProfilePicture && profilePreview && profilePlaceholder) {
+            // No saved image, show placeholder
+            profilePreview.classList.add('hidden');
+            profilePlaceholder.classList.remove('hidden');
+            if (removeBtn) removeBtn.classList.add('hidden');
+        }
+
+        // Handle cover image - replace preview with saved data
+        const coverPreviewImg = document.getElementById('coverImagePreviewImg');
+        const coverPreview = document.getElementById('coverImagePreview');
+        const coverPlaceholder = document.getElementById('coverImagePlaceholder');
+        const removeCoverBtn = document.getElementById('removeCoverImage');
+        const coverInput = document.getElementById('coverImage');
+
+        if (existingCoverImage && coverPreviewImg && coverPreview && coverPlaceholder) {
+            // Replace preview with saved image
+            coverPreviewImg.src = existingCoverImage;
+            coverPreview.classList.remove('hidden');
+            coverPlaceholder.classList.add('hidden');
+            if (removeCoverBtn) removeCoverBtn.classList.remove('hidden');
+
+            // Store the raw existing image (base64 or URL) for submission
+            if (existingCoverImageRaw && coverInput) {
+                coverInput.setAttribute('data-existing', existingCoverImageRaw);
+            }
+        } else if (!existingCoverImage && coverPreview && coverPlaceholder) {
+            // No saved image, show placeholder
+            coverPreview.classList.add('hidden');
+            coverPlaceholder.classList.remove('hidden');
+            if (removeCoverBtn) removeCoverBtn.classList.add('hidden');
+        }
+    });
+
+    // Preview cover image and convert to base64
     function previewCoverImage(input) {
         if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const maxSize = 1 * 1024 * 1024; // 1MB in bytes
+
+            // Validate file type - only images allowed
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid File Type',
+                    text: 'Only JPEG, PNG, GIF, and WebP images are allowed.',
+                    confirmButtonColor: '#3085d6'
+                });
+                input.value = ''; // Clear the input
+                return;
+            }
+
+            // Validate file size
+            if (file.size > maxSize) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'File Too Large',
+                    text: 'Cover image must be less than 1MB. Please choose a smaller file.',
+                    confirmButtonColor: '#3085d6'
+                });
+                input.value = ''; // Clear the input
+                return;
+            }
+
             const reader = new FileReader();
             reader.onload = function(e) {
                 document.getElementById('coverImagePreviewImg').src = e.target.result;
                 document.getElementById('coverImagePreview').classList.remove('hidden');
                 document.getElementById('coverImagePlaceholder').classList.add('hidden');
                 document.getElementById('removeCoverImage').classList.remove('hidden');
+
+                // Store base64 string (remove data:image/...;base64, prefix for storage)
+                const base64String = e.target.result.split(',')[1];
+                document.getElementById('coverImage').setAttribute('data-base64', base64String);
             };
-            reader.readAsDataURL(input.files[0]);
+            reader.readAsDataURL(file);
         }
     }
 
     // Remove cover image
     function removeCoverImage() {
         document.getElementById('coverImage').value = '';
+        document.getElementById('coverImage').removeAttribute('data-base64');
+        document.getElementById('coverImage').setAttribute('data-removed', 'true');
         document.getElementById('coverImagePreview').classList.add('hidden');
         document.getElementById('coverImagePlaceholder').classList.remove('hidden');
         document.getElementById('removeCoverImage').classList.add('hidden');
     }
 
-    // Preview profile picture
+    // Preview profile picture and convert to base64
     function previewProfilePicture(input) {
         if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const maxSize = 1 * 1024 * 1024; // 1MB in bytes
+
+            // Validate file type - only images allowed
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid File Type',
+                    text: 'Only JPEG, PNG, GIF, and WebP images are allowed.',
+                    confirmButtonColor: '#3085d6'
+                });
+                input.value = ''; // Clear the input
+                return;
+            }
+
+            // Validate file size
+            if (file.size > maxSize) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'File Too Large',
+                    text: 'Profile picture must be less than 1MB. Please choose a smaller file.',
+                    confirmButtonColor: '#3085d6'
+                });
+                input.value = ''; // Clear the input
+                return;
+            }
+
             const reader = new FileReader();
             reader.onload = function(e) {
                 document.getElementById('profilePicturePreviewImg').src = e.target.result;
                 document.getElementById('profilePicturePreview').classList.remove('hidden');
                 document.getElementById('profilePicturePlaceholder').classList.add('hidden');
                 document.getElementById('removeProfilePicture').classList.remove('hidden');
+
+                // Store base64 string (remove data:image/...;base64, prefix for storage)
+                const base64String = e.target.result.split(',')[1];
+                document.getElementById('profilePicture').setAttribute('data-base64', base64String);
+                document.getElementById('profilePicture').removeAttribute('data-removed'); // Clear removed flag if new image selected
             };
-            reader.readAsDataURL(input.files[0]);
+            reader.readAsDataURL(file);
         }
     }
 
     // Remove profile picture
     function removeProfilePicture() {
         document.getElementById('profilePicture').value = '';
+        document.getElementById('profilePicture').removeAttribute('data-base64');
+        document.getElementById('profilePicture').setAttribute('data-removed', 'true');
         document.getElementById('profilePicturePreview').classList.add('hidden');
         document.getElementById('profilePicturePlaceholder').classList.remove('hidden');
         document.getElementById('removeProfilePicture').classList.add('hidden');
+    }
+
+    // Helper function to convert image URL/path to base64 (fetches actual image file)
+    function convertImageUrlToBase64(imagePathOrUrl) {
+        return new Promise((resolve, reject) => {
+            // If it's already a base64 data URL, extract the base64 part
+            if (imagePathOrUrl.startsWith('data:image')) {
+                const base64Part = imagePathOrUrl.split(',')[1];
+                resolve(base64Part);
+                return;
+            }
+
+            // If it's already a base64 string (no data: prefix, no slashes, no extension), return as is
+            if (!imagePathOrUrl.includes('/') && !imagePathOrUrl.includes('.')) {
+                // Likely a base64 string without prefix
+                resolve(imagePathOrUrl);
+                return;
+            }
+
+            // Build full URL if it's a relative path
+            let imageUrl = imagePathOrUrl;
+            if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+                // It's a relative path, prepend API base URL
+                const apiBaseUrl = 'http://36.93.42.27:4340';
+                if (imageUrl.startsWith('/')) {
+                    imageUrl = apiBaseUrl + imageUrl;
+                } else {
+                    imageUrl = apiBaseUrl + '/' + imageUrl;
+                }
+            }
+
+            console.log('Fetching image from URL to convert to base64:', imageUrl);
+
+            // Fetch the actual image file from the URL and convert to base64
+            fetch(imageUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+                    }
+                    return response.blob();
+                })
+                .then(blob => {
+                    // Check blob size (max 1MB)
+                    if (blob.size > 1 * 1024 * 1024) {
+                        reject(new Error('Image file is too large (max 1MB)'));
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onloadend = function() {
+                        // Extract base64 part (remove data:image/...;base64, prefix)
+                        const base64String = reader.result.split(',')[1];
+                        console.log('Image converted to base64, length:', base64String.length);
+                        resolve(base64String);
+                    };
+                    reader.onerror = function(error) {
+                        reject(new Error('Failed to read image file: ' + error));
+                    };
+                    reader.readAsDataURL(blob);
+                })
+                .catch(error => {
+                    console.error('Error fetching image:', imageUrl, error);
+                    reject(new Error('Failed to fetch image from URL: ' + error.message));
+                });
+        });
     }
 
     // Handle profile form submission
@@ -575,82 +838,181 @@
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
             form.querySelector('input[name="_token"]')?.value;
 
-        // Create FormData
-        const formData = new FormData(form);
+        // Prepare form data as JSON (with base64 strings)
+        const formData = {
+            _token: csrfToken,
+            name: form.querySelector('#name').value,
+            email: form.querySelector('#email').value,
+            phone_number: form.querySelector('#phone_number').value || null,
+            tax_id_number: form.querySelector('#tax_id_number').value || null,
+            notify_on_message: form.querySelector('#notify_on_message').checked ? true : null,
+            show_email: form.querySelector('#show_email').checked ? true : null,
+            show_phone_number: form.querySelector('#show_phone_number').checked ? true : null,
+        };
 
-        // Make AJAX request
-        fetch('{{ route("profile.update") }}', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': csrfToken,
-                'Accept': 'application/json'
-            },
-            body: formData
-        })
-        .then(response => {
-            // Check if response is JSON
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                return response.json();
-            }
-            // If not JSON, it might be a redirect or HTML response
-            return response.text().then(text => {
-                // Try to parse as JSON if possible
-                try {
-                    return JSON.parse(text);
-                } catch (e) {
-                    // If it's HTML (redirect response), treat as success
-                    return { success: true, message: 'Profile updated successfully!' };
-                }
-            });
-        })
-        .then(data => {
-            if (data.success || data.status === 'success' || (data.message && !data.errors)) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Success',
-                    text: data.message || 'Profile updated successfully!',
-                    timer: 3000,
-                    showConfirmButton: false,
-                    toast: true,
-                    position: 'top-end'
-                }).then(() => {
-                    // Reload page to show updated data
-                    window.location.reload();
-                });
-            } else {
-                // Handle validation errors
-                let errorMessage = data.message || 'Failed to update profile.';
-                if (data.errors) {
-                    if (typeof data.errors === 'object') {
-                        const errorMessages = Object.values(data.errors).flat();
-                        errorMessage = errorMessages.join(' ');
-                    } else {
-                        errorMessage = data.errors;
+        // Handle profile picture
+        const profilePictureInput = document.getElementById('profilePicture');
+        const profilePictureBase64 = profilePictureInput.getAttribute('data-base64');
+        const profilePictureRemoved = profilePictureInput.getAttribute('data-removed');
+        const profilePictureExisting = profilePictureInput.getAttribute('data-existing');
+
+        if (profilePictureRemoved === 'true') {
+            // User explicitly removed the image
+            formData.profile_picture = null;
+        } else if (profilePictureBase64) {
+            // User selected a new image
+            formData.profile_picture = profilePictureBase64;
+        } else if (profilePictureExisting) {
+            // User didn't change the image, convert existing URL to base64
+            // Note: We'll handle this conversion in the promise chain below
+            formData._profilePictureExisting = profilePictureExisting;
+        }
+
+        // Handle cover image
+        const coverImageInput = document.getElementById('coverImage');
+        const coverImageBase64 = coverImageInput.getAttribute('data-base64');
+        const coverImageRemoved = coverImageInput.getAttribute('data-removed');
+        const coverImageExisting = coverImageInput.getAttribute('data-existing');
+
+        if (coverImageRemoved === 'true') {
+            // User explicitly removed the image
+            formData.cover_image = null;
+        } else if (coverImageBase64) {
+            // User selected a new image
+            formData.cover_image = coverImageBase64;
+        } else if (coverImageExisting) {
+            // User didn't change the image, convert existing URL to base64
+            // Note: We'll handle this conversion in the promise chain below
+            formData._coverImageExisting = coverImageExisting;
+        }
+
+        // Convert existing images to base64 if needed (before sending)
+        const promises = [];
+
+        if (formData._profilePictureExisting) {
+            promises.push(
+                convertImageUrlToBase64(formData._profilePictureExisting)
+                .then(base64 => {
+                    formData.profile_picture = base64;
+                    delete formData._profilePictureExisting;
+                })
+                .catch(error => {
+                    console.error('Error converting profile picture to base64:', error);
+                    delete formData._profilePictureExisting;
+                    // Don't include profile_picture if conversion fails
+                })
+            );
+        }
+
+        if (formData._coverImageExisting) {
+            promises.push(
+                convertImageUrlToBase64(formData._coverImageExisting)
+                .then(base64 => {
+                    formData.cover_image = base64;
+                    delete formData._coverImageExisting;
+                })
+                .catch(error => {
+                    console.error('Error converting cover image to base64:', error);
+                    delete formData._coverImageExisting;
+                    // Don't include cover_image if conversion fails
+                })
+            );
+        }
+
+        // Wait for all conversions to complete, then send request
+        Promise.all(promises).then(() => {
+            // Make AJAX request
+            fetch('{{ route("profile.update") }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                })
+                .then(response => {
+                    // Check if response is JSON
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        return response.json();
                     }
-                }
-                
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: errorMessage,
-                    confirmButtonColor: '#3085d6'
+                    // If not JSON, it might be a redirect or HTML response
+                    return response.text().then(text => {
+                        // Try to parse as JSON if possible
+                        try {
+                            return JSON.parse(text);
+                        } catch (e) {
+                            // If it's HTML (redirect response), treat as success
+                            return {
+                                success: true,
+                                message: 'Profile updated successfully!'
+                            };
+                        }
+                    });
+                })
+                .then(data => {
+                    if (data.success || data.status === 'success' || (data.message && !data.errors)) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: data.message || 'Profile updated successfully!',
+                            timer: 3000,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end'
+                        }).then(() => {
+                            // Reload page to show updated data (including navbar)
+                            // Use replace to avoid back button issues and ensure fresh session data
+                            window.location.replace(window.location.href);
+                        });
+                    } else {
+                        // Handle validation errors
+                        let errorMessage = data.message || 'Failed to update profile.';
+                        if (data.errors) {
+                            if (typeof data.errors === 'object') {
+                                const errorMessages = Object.values(data.errors).flat();
+                                errorMessage = errorMessages.join(' ');
+                            } else {
+                                errorMessage = data.errors;
+                            }
+                        }
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: errorMessage,
+                            confirmButtonColor: '#3085d6'
+                        });
+
+                        submitBtn.disabled = false;
+                        submitBtnText.classList.remove('hidden');
+                        submitBtnLoading.classList.add('hidden');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'An error occurred while updating profile. Please try again.',
+                        confirmButtonColor: '#3085d6'
+                    });
+
+                    submitBtn.disabled = false;
+                    submitBtnText.classList.remove('hidden');
+                    submitBtnLoading.classList.add('hidden');
                 });
-                
-                submitBtn.disabled = false;
-                submitBtnText.classList.remove('hidden');
-                submitBtnLoading.classList.add('hidden');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
+        }).catch(error => {
+            // Error during image conversion
+            console.error('Error converting images:', error);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: 'An error occurred while updating profile. Please try again.',
+                text: 'An error occurred while processing images. Please try again.',
                 confirmButtonColor: '#3085d6'
             });
-            
+
             submitBtn.disabled = false;
             submitBtnText.classList.remove('hidden');
             submitBtnLoading.classList.add('hidden');
@@ -942,7 +1304,7 @@
         }).on('change', function() {
             loadStates($(this).val());
         });
-        
+
         $('#shipping_state_id').select2({
             placeholder: 'Select State',
             allowClear: true,
@@ -950,7 +1312,7 @@
         }).on('change', function() {
             loadCities($(this).val());
         });
-        
+
         $('#shipping_city_id').select2({
             placeholder: 'Select City',
             allowClear: true,
@@ -989,40 +1351,40 @@
     function loadCountries() {
         return new Promise((resolve, reject) => {
             fetch('{{ route("api.world.countries") }}', {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                const countrySelect = $('#shipping_country_id');
-                if (data.status === 'success' && data.data && Array.isArray(data.data)) {
-                    // Clear existing options except the first one
-                    countrySelect.empty().append('<option value="">Select Country</option>');
-                    data.data.forEach(country => {
-                        const option = $('<option></option>')
-                            .attr('value', country.id || country.country_id || '')
-                            .text(country.name || country.country_name || '');
-                        countrySelect.append(option);
-                    });
-                    // Reinitialize Select2
-                    countrySelect.select2({
-                        placeholder: 'Select Country',
-                        allowClear: true,
-                        width: '100%'
-                    }).on('change', function() {
-                        loadStates($(this).val());
-                    });
-                    resolve();
-                } else {
-                    reject('Failed to load countries');
-                }
-            })
-            .catch(error => {
-                console.error('Error loading countries:', error);
-                reject(error);
-            });
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const countrySelect = $('#shipping_country_id');
+                    if (data.status === 'success' && data.data && Array.isArray(data.data)) {
+                        // Clear existing options except the first one
+                        countrySelect.empty().append('<option value="">Select Country</option>');
+                        data.data.forEach(country => {
+                            const option = $('<option></option>')
+                                .attr('value', country.id || country.country_id || '')
+                                .text(country.name || country.country_name || '');
+                            countrySelect.append(option);
+                        });
+                        // Reinitialize Select2
+                        countrySelect.select2({
+                            placeholder: 'Select Country',
+                            allowClear: true,
+                            width: '100%'
+                        }).on('change', function() {
+                            loadStates($(this).val());
+                        });
+                        resolve();
+                    } else {
+                        reject('Failed to load countries');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading countries:', error);
+                    reject(error);
+                });
         });
     }
 
@@ -1044,41 +1406,43 @@
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
         fetch('{{ route("api.world.states") }}', {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken
-            },
-            body: JSON.stringify({ country_id: parseInt(countryId) })
-        })
-        .then(response => response.json())
-        .then(data => {
-            const stateSelect = $('#shipping_state_id');
-            if (data.status === 'success' && data.data && Array.isArray(data.data)) {
-                stateSelect.empty().append('<option value="">Select State</option>');
-                data.data.forEach(state => {
-                    const option = $('<option></option>')
-                        .attr('value', state.id || state.state_id || '')
-                        .text(state.name || state.state_name || '');
-                    stateSelect.append(option);
-                });
-                // Reinitialize Select2
-                stateSelect.select2({
-                    placeholder: 'Select State',
-                    allowClear: true,
-                    width: '100%'
-                }).on('change', function() {
-                    loadCities($(this).val());
-                });
-            }
-            // Reset city dropdown
-            const citySelect = $('#shipping_city_id');
-            citySelect.empty().append('<option value="">Select City</option>').val('').trigger('change');
-        })
-        .catch(error => {
-            console.error('Error loading states:', error);
-        });
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({
+                    country_id: parseInt(countryId)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const stateSelect = $('#shipping_state_id');
+                if (data.status === 'success' && data.data && Array.isArray(data.data)) {
+                    stateSelect.empty().append('<option value="">Select State</option>');
+                    data.data.forEach(state => {
+                        const option = $('<option></option>')
+                            .attr('value', state.id || state.state_id || '')
+                            .text(state.name || state.state_name || '');
+                        stateSelect.append(option);
+                    });
+                    // Reinitialize Select2
+                    stateSelect.select2({
+                        placeholder: 'Select State',
+                        allowClear: true,
+                        width: '100%'
+                    }).on('change', function() {
+                        loadCities($(this).val());
+                    });
+                }
+                // Reset city dropdown
+                const citySelect = $('#shipping_city_id');
+                citySelect.empty().append('<option value="">Select City</option>').val('').trigger('change');
+            })
+            .catch(error => {
+                console.error('Error loading states:', error);
+            });
     }
 
     // Load cities by state
@@ -1098,38 +1462,40 @@
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
         fetch('{{ route("api.world.cities") }}', {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken
-            },
-            body: JSON.stringify({ state_id: parseInt(stateId) })
-        })
-        .then(response => response.json())
-        .then(data => {
-            const citySelect = $('#shipping_city_id');
-            if (data.status === 'success' && data.data && Array.isArray(data.data)) {
-                citySelect.empty().append('<option value="">Select City</option>');
-                data.data.forEach(city => {
-                    const option = $('<option></option>')
-                        .attr('value', city.id || city.city_id || '')
-                        .text(city.name || city.city_name || '');
-                    citySelect.append(option);
-                });
-                // Reinitialize Select2
-                citySelect.select2({
-                    placeholder: 'Select City',
-                    allowClear: true,
-                    width: '100%'
-                }).on('change', function() {
-                    updateCityName(this);
-                });
-            }
-        })
-        .catch(error => {
-            console.error('Error loading cities:', error);
-        });
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({
+                    state_id: parseInt(stateId)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const citySelect = $('#shipping_city_id');
+                if (data.status === 'success' && data.data && Array.isArray(data.data)) {
+                    citySelect.empty().append('<option value="">Select City</option>');
+                    data.data.forEach(city => {
+                        const option = $('<option></option>')
+                            .attr('value', city.id || city.city_id || '')
+                            .text(city.name || city.city_name || '');
+                        citySelect.append(option);
+                    });
+                    // Reinitialize Select2
+                    citySelect.select2({
+                        placeholder: 'Select City',
+                        allowClear: true,
+                        width: '100%'
+                    }).on('change', function() {
+                        updateCityName(this);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error loading cities:', error);
+            });
     }
 
     // Update city name when city is selected
@@ -1144,7 +1510,7 @@
         document.getElementById('shippingAddressModal').classList.add('hidden');
         document.getElementById('shippingAddressForm').reset();
         clearShippingErrors();
-        
+
         // Reset dropdowns and destroy Select2
         $('#shipping_country_id').val('').trigger('change');
         $('#shipping_state_id').empty().append('<option value="">Select State</option>').val('').trigger('change');
@@ -1160,7 +1526,7 @@
 
         // Build the show URL - route expects /profile/shipping-address/{id}
         const showUrl = `/profile/shipping-address/${id}`;
-        
+
         fetch(showUrl, {
                 method: 'POST',
                 headers: {
@@ -1187,10 +1553,10 @@
                     document.getElementById('shipping_address_title').value = addr.address_title || '';
                     document.getElementById('shipping_address_description').value = addr.address_description || '';
                     document.getElementById('shipping_zip_code').value = addr.zip_code || '';
-                    
+
                     // Store address data for later use
                     window.currentEditingAddress = addr;
-                    
+
                     // Set country, state, and city - countries should already be loaded
                     setCountryStateCity(addr);
                 } else {
@@ -1208,12 +1574,12 @@
         const countrySelect = $('#shipping_country_id');
         const stateSelect = $('#shipping_state_id');
         const citySelect = $('#shipping_city_id');
-        
+
         // Convert IDs to strings for comparison
         const countryId = String(addr.country_id || '');
         const stateId = String(addr.state_id || '');
         const cityId = String(addr.city_id || '');
-        
+
         // Set country
         if (countryId) {
             // Wait to ensure Select2 is ready
@@ -1224,14 +1590,14 @@
                     // Try with integer value
                     countryOption = countrySelect.find(`option[value="${parseInt(countryId)}"]`);
                 }
-                
+
                 if (countryOption.length > 0) {
                     // Set country value - use the actual value from the option
                     const actualValue = countryOption.attr('value');
                     countrySelect.val(actualValue);
                     countrySelect.trigger('change.select2');
                     document.getElementById('shipping_country_name').value = addr.country_name || '';
-                    
+
                     // Wait before loading states
                     setTimeout(() => {
                         loadStatesForEdit(actualValue, stateId, addr.state_name, cityId, addr.city_name);
@@ -1263,154 +1629,158 @@
     function loadStatesForEdit(countryId, stateId, stateName, cityId, cityName) {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
         const stateSelect = $('#shipping_state_id');
-        
+
         fetch('{{ route("api.world.states") }}', {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken
-            },
-            body: JSON.stringify({ country_id: parseInt(countryId) })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success' && data.data && Array.isArray(data.data)) {
-                stateSelect.empty().append('<option value="">Select State</option>');
-                data.data.forEach(state => {
-                    const option = $('<option></option>')
-                        .attr('value', state.id || state.state_id || '')
-                        .text(state.name || state.state_name || '');
-                    stateSelect.append(option);
-                });
-                
-                // Reinitialize Select2
-                stateSelect.select2({
-                    placeholder: 'Select State',
-                    allowClear: true,
-                    width: '100%'
-                }).on('change', function() {
-                    loadCities($(this).val());
-                });
-                
-                // Set state value after Select2 is ready
-                if (stateId) {
-                    setTimeout(() => {
-                        // Try to find state by value (try both string and number)
-                        let stateOption = stateSelect.find(`option[value="${stateId}"]`);
-                        if (stateOption.length === 0) {
-                            stateOption = stateSelect.find(`option[value="${parseInt(stateId)}"]`);
-                        }
-                        
-                        if (stateOption.length > 0) {
-                            const actualValue = stateOption.attr('value');
-                            stateSelect.val(actualValue);
-                            stateSelect.trigger('change.select2');
-                            document.getElementById('shipping_state_name').value = stateName || '';
-                            
-                            // Wait before loading cities
-                            setTimeout(() => {
-                                loadCitiesForEdit(actualValue, cityId, cityName);
-                            }, 800);
-                        } else {
-                            // State not found, try again
-                            console.log('State not found, retrying...', stateId);
-                            setTimeout(() => {
-                                stateOption = stateSelect.find(`option[value="${stateId}"]`);
-                                if (stateOption.length === 0) {
-                                    stateOption = stateSelect.find(`option[value="${parseInt(stateId)}"]`);
-                                }
-                                if (stateOption.length > 0) {
-                                    const actualValue = stateOption.attr('value');
-                                    stateSelect.val(actualValue);
-                                    stateSelect.trigger('change.select2');
-                                    document.getElementById('shipping_state_name').value = stateName || '';
-                                    setTimeout(() => {
-                                        loadCitiesForEdit(actualValue, cityId, cityName);
-                                    }, 800);
-                                }
-                            }, 500);
-                        }
-                    }, 500);
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({
+                    country_id: parseInt(countryId)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success' && data.data && Array.isArray(data.data)) {
+                    stateSelect.empty().append('<option value="">Select State</option>');
+                    data.data.forEach(state => {
+                        const option = $('<option></option>')
+                            .attr('value', state.id || state.state_id || '')
+                            .text(state.name || state.state_name || '');
+                        stateSelect.append(option);
+                    });
+
+                    // Reinitialize Select2
+                    stateSelect.select2({
+                        placeholder: 'Select State',
+                        allowClear: true,
+                        width: '100%'
+                    }).on('change', function() {
+                        loadCities($(this).val());
+                    });
+
+                    // Set state value after Select2 is ready
+                    if (stateId) {
+                        setTimeout(() => {
+                            // Try to find state by value (try both string and number)
+                            let stateOption = stateSelect.find(`option[value="${stateId}"]`);
+                            if (stateOption.length === 0) {
+                                stateOption = stateSelect.find(`option[value="${parseInt(stateId)}"]`);
+                            }
+
+                            if (stateOption.length > 0) {
+                                const actualValue = stateOption.attr('value');
+                                stateSelect.val(actualValue);
+                                stateSelect.trigger('change.select2');
+                                document.getElementById('shipping_state_name').value = stateName || '';
+
+                                // Wait before loading cities
+                                setTimeout(() => {
+                                    loadCitiesForEdit(actualValue, cityId, cityName);
+                                }, 800);
+                            } else {
+                                // State not found, try again
+                                console.log('State not found, retrying...', stateId);
+                                setTimeout(() => {
+                                    stateOption = stateSelect.find(`option[value="${stateId}"]`);
+                                    if (stateOption.length === 0) {
+                                        stateOption = stateSelect.find(`option[value="${parseInt(stateId)}"]`);
+                                    }
+                                    if (stateOption.length > 0) {
+                                        const actualValue = stateOption.attr('value');
+                                        stateSelect.val(actualValue);
+                                        stateSelect.trigger('change.select2');
+                                        document.getElementById('shipping_state_name').value = stateName || '';
+                                        setTimeout(() => {
+                                            loadCitiesForEdit(actualValue, cityId, cityName);
+                                        }, 800);
+                                    }
+                                }, 500);
+                            }
+                        }, 500);
+                    }
                 }
-            }
-        })
-        .catch(error => {
-            console.error('Error loading states:', error);
-        });
+            })
+            .catch(error => {
+                console.error('Error loading states:', error);
+            });
     }
 
     // Helper function to load cities and set city for editing
     function loadCitiesForEdit(stateId, cityId, cityName) {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
         const citySelect = $('#shipping_city_id');
-        
+
         fetch('{{ route("api.world.cities") }}', {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken
-            },
-            body: JSON.stringify({ state_id: parseInt(stateId) })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success' && data.data && Array.isArray(data.data)) {
-                citySelect.empty().append('<option value="">Select City</option>');
-                data.data.forEach(city => {
-                    const option = $('<option></option>')
-                        .attr('value', city.id || city.city_id || '')
-                        .text(city.name || city.city_name || '');
-                    citySelect.append(option);
-                });
-                
-                // Reinitialize Select2
-                citySelect.select2({
-                    placeholder: 'Select City',
-                    allowClear: true,
-                    width: '100%'
-                }).on('change', function() {
-                    updateCityName(this);
-                });
-                
-                // Set city value after Select2 is ready
-                if (cityId) {
-                    setTimeout(() => {
-                        // Try to find city by value (try both string and number)
-                        let cityOption = citySelect.find(`option[value="${cityId}"]`);
-                        if (cityOption.length === 0) {
-                            cityOption = citySelect.find(`option[value="${parseInt(cityId)}"]`);
-                        }
-                        
-                        if (cityOption.length > 0) {
-                            const actualValue = cityOption.attr('value');
-                            citySelect.val(actualValue);
-                            citySelect.trigger('change.select2');
-                            document.getElementById('shipping_city_name').value = cityName || '';
-                        } else {
-                            // City not found, try again
-                            console.log('City not found, retrying...', cityId);
-                            setTimeout(() => {
-                                cityOption = citySelect.find(`option[value="${cityId}"]`);
-                                if (cityOption.length === 0) {
-                                    cityOption = citySelect.find(`option[value="${parseInt(cityId)}"]`);
-                                }
-                                if (cityOption.length > 0) {
-                                    const actualValue = cityOption.attr('value');
-                                    citySelect.val(actualValue);
-                                    citySelect.trigger('change.select2');
-                                    document.getElementById('shipping_city_name').value = cityName || '';
-                                }
-                            }, 500);
-                        }
-                    }, 500);
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({
+                    state_id: parseInt(stateId)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success' && data.data && Array.isArray(data.data)) {
+                    citySelect.empty().append('<option value="">Select City</option>');
+                    data.data.forEach(city => {
+                        const option = $('<option></option>')
+                            .attr('value', city.id || city.city_id || '')
+                            .text(city.name || city.city_name || '');
+                        citySelect.append(option);
+                    });
+
+                    // Reinitialize Select2
+                    citySelect.select2({
+                        placeholder: 'Select City',
+                        allowClear: true,
+                        width: '100%'
+                    }).on('change', function() {
+                        updateCityName(this);
+                    });
+
+                    // Set city value after Select2 is ready
+                    if (cityId) {
+                        setTimeout(() => {
+                            // Try to find city by value (try both string and number)
+                            let cityOption = citySelect.find(`option[value="${cityId}"]`);
+                            if (cityOption.length === 0) {
+                                cityOption = citySelect.find(`option[value="${parseInt(cityId)}"]`);
+                            }
+
+                            if (cityOption.length > 0) {
+                                const actualValue = cityOption.attr('value');
+                                citySelect.val(actualValue);
+                                citySelect.trigger('change.select2');
+                                document.getElementById('shipping_city_name').value = cityName || '';
+                            } else {
+                                // City not found, try again
+                                console.log('City not found, retrying...', cityId);
+                                setTimeout(() => {
+                                    cityOption = citySelect.find(`option[value="${cityId}"]`);
+                                    if (cityOption.length === 0) {
+                                        cityOption = citySelect.find(`option[value="${parseInt(cityId)}"]`);
+                                    }
+                                    if (cityOption.length > 0) {
+                                        const actualValue = cityOption.attr('value');
+                                        citySelect.val(actualValue);
+                                        citySelect.trigger('change.select2');
+                                        document.getElementById('shipping_city_name').value = cityName || '';
+                                    }
+                                }, 500);
+                            }
+                        }, 500);
+                    }
                 }
-            }
-        })
-        .catch(error => {
-            console.error('Error loading cities:', error);
-        });
+            })
+            .catch(error => {
+                console.error('Error loading cities:', error);
+            });
     }
 
     function editShippingAddress(id) {
@@ -1493,36 +1863,38 @@
 
             // Build the delete URL - route expects /profile/shipping-address/{id}/delete
             const deleteUrl = `/profile/shipping-address/${id}/delete`;
-            
+
             fetch(deleteUrl, {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken
-                },
-                body: JSON.stringify({ id: id })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Deleted!',
-                        text: data.message || 'Shipping address deleted successfully!',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                    // Reload the addresses list
-                    loadShippingAddresses();
-                } else {
-                    showShippingError(data.message || 'Failed to delete shipping address.');
-                }
-            })
-            .catch(error => {
-                console.error('Error deleting shipping address:', error);
-                showShippingError('An error occurred while deleting the address. Please try again.');
-            });
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    body: JSON.stringify({
+                        id: id
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Deleted!',
+                            text: data.message || 'Shipping address deleted successfully!',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        // Reload the addresses list
+                        loadShippingAddresses();
+                    } else {
+                        showShippingError(data.message || 'Failed to delete shipping address.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting shipping address:', error);
+                    showShippingError('An error occurred while deleting the address. Please try again.');
+                });
         });
     }
 
@@ -1744,21 +2116,6 @@
         div.textContent = text;
         return div.innerHTML;
     }
-
-    // Load existing images if available
-    @if(session('user_data.cover_image'))
-    document.getElementById('coverImagePreviewImg').src = '{{ session("user_data.cover_image") }}';
-    document.getElementById('coverImagePreview').classList.remove('hidden');
-    document.getElementById('coverImagePlaceholder').classList.add('hidden');
-    document.getElementById('removeCoverImage').classList.remove('hidden');
-    @endif
-
-    @if(session('user_data.image') || session('user_data.avatar'))
-    document.getElementById('profilePicturePreviewImg').src = '{{ session("user_data.image") ?? session("user_data.avatar") }}';
-    document.getElementById('profilePicturePreview').classList.remove('hidden');
-    document.getElementById('profilePicturePlaceholder').classList.add('hidden');
-    document.getElementById('removeProfilePicture').classList.remove('hidden');
-    @endif
 </script>
 @endpush
 
