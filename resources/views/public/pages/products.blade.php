@@ -649,7 +649,12 @@
             .fail(function() {
                 $('#loading-indicator').addClass('hidden');
                 isLoading = false;
-                alert('Failed to load products. Please try again.');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to load products. Please try again.',
+                    confirmButtonColor: '#3085d6'
+                });
             });
     };
     

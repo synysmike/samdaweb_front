@@ -350,11 +350,28 @@
     }
 
     function deleteUser(id) {
-        if (confirm('Are you sure you want to delete this user?')) {
-            usersData = usersData.filter(u => u.id !== id);
-            dataTable.clear().rows.add(usersData).draw();
-            alert('User deleted successfully!');
-        }
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'You want to delete this user?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                usersData = usersData.filter(u => u.id !== id);
+                dataTable.clear().rows.add(usersData).draw();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Deleted!',
+                    text: 'User deleted successfully!',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
+        });
     }
 
     function viewBiodata(id) {
@@ -451,7 +468,15 @@
                     status: formData.status
                 };
                 dataTable.clear().rows.add(usersData).draw();
-                alert('User updated successfully!');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: 'User updated successfully!',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                });
             }
         } else {
             // Create new user
@@ -466,7 +491,15 @@
             };
             usersData.push(newUser);
             dataTable.clear().rows.add(usersData).draw();
-            alert('User created successfully!');
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: 'User created successfully!',
+                timer: 2000,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end'
+            });
         }
 
         closeModal();

@@ -438,11 +438,28 @@
     }
 
     function deleteCategory(id) {
-        if (confirm('Are you sure you want to delete this category?')) {
-            currentCategories = currentCategories.filter(c => c.id !== id);
-            loadCategories();
-            alert('Category deleted successfully!');
-        }
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'You want to delete this category?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                currentCategories = currentCategories.filter(c => c.id !== id);
+                loadCategories();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Deleted!',
+                    text: 'Category deleted successfully!',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
+        });
     }
 
     function closeCategoryModal() {
@@ -474,7 +491,15 @@
                     status: formData.status
                 };
                 loadCategories();
-                alert('Category updated successfully!');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: 'Category updated successfully!',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                });
             }
         } else {
             const newCategory = {
@@ -485,14 +510,27 @@
             };
             currentCategories.push(newCategory);
             loadCategories();
-            alert('Category created successfully!');
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: 'Category created successfully!',
+                timer: 2000,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end'
+            });
         }
 
         closeCategoryModal();
     });
 
     function viewProduct(id) {
-        alert('View product detail: ' + id);
+        Swal.fire({
+            icon: 'info',
+            title: 'Product Detail',
+            text: 'View product detail: ' + id,
+            confirmButtonColor: '#3085d6'
+        });
     }
 </script>
 @endpush

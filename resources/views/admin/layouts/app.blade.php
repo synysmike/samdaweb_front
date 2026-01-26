@@ -7,6 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         [x-cloak] { display: none !important; }
     </style>
@@ -30,6 +32,9 @@
                 </a>
                 <a href="{{ route('admin.users.index') }}" class="block px-4 py-2 rounded {{ request()->routeIs('admin.users.*') ? 'bg-gray-700' : 'hover:bg-gray-700' }} transition-colors">
                     Users
+                </a>
+                <a href="{{ route('admin.products.index') }}" class="block px-4 py-2 rounded {{ request()->routeIs('admin.products.*') ? 'bg-gray-700' : 'hover:bg-gray-700' }} transition-colors">
+                    Products
                 </a>
                 <!-- Add more navigation items here -->
             </nav>

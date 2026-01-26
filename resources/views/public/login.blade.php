@@ -80,7 +80,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .error-message {
@@ -115,7 +117,7 @@
                 <img src="https://media.istockphoto.com/id/2153823097/id/foto/pasangan-atletik-ceria-jogging-melalui-taman.jpg?s=612x612&w=0&k=20&c=a-m5-CokUaWQs_i8BGEryW-6RwCK8pkY-tWpvOvHhHo="
                     style="display:none;">
             </div>
-            
+
             <!-- Elegant Welcome Card -->
             <div class="relative z-10 w-full max-w-lg mx-auto px-6 py-8">
                 <div class="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8 md:p-12 text-center transform transition-all duration-300 hover:scale-105">
@@ -123,7 +125,7 @@
                     <div class="mb-6">
                         <img src="/images/logo.png" alt="Shop Logo" class="mx-auto w-32 h-32 md:w-40 md:h-40 object-contain drop-shadow-2xl">
                     </div>
-                    
+
                     <!-- Welcome Greeting -->
                     <div class="space-y-4">
                         <h1 class="text-4xl md:text-5xl font-bold text-white drop-shadow-lg">
@@ -151,7 +153,7 @@
                         <div class="bg-white shadow-2xl rounded-2xl p-8 flex flex-col border border-gray-100 relative overflow-hidden">
                             <!-- Decorative top accent -->
                             <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500"></div>
-                            
+
                             <!-- Header with icon -->
                             <div class="text-center mb-8">
                                 <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 mb-4 shadow-lg">
@@ -162,10 +164,10 @@
                                 <h1 class="text-3xl font-bold text-gray-800 mb-2">Welcome Back</h1>
                                 <p class="text-sm text-gray-500">Sign in to continue</p>
                             </div>
-                            
+
                             <!-- Error Alert Container -->
                             <div id="login-error-alert" class="hidden mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm"></div>
-                            
+
                             <!-- Success Alert Container -->
                             <div id="login-success-alert" class="hidden mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm"></div>
 
@@ -236,17 +238,17 @@
                                     Facebook
                                 </button>
                             </div>
-                            
+
                             <!-- Sign Up Button -->
                             <div class="mt-6">
-                                <button type="button" onclick="flipToRegister()" 
+                                <button type="button" onclick="flipToRegister()"
                                     class="w-full bg-white border-2 border-blue-600 text-blue-600 py-3 rounded-lg font-semibold shadow-md hover:shadow-lg hover:bg-blue-50 transform hover:-translate-y-0.5 transition-all duration-200">
                                     Create New Account
                                 </button>
                             </div>
-                            
+
                             <p class="mt-4 text-sm text-center text-gray-600">
-                                Already have an account? 
+                                Already have an account?
                                 <span class="text-blue-600 font-medium">You're all set!</span>
                             </p>
                         </div>
@@ -258,7 +260,7 @@
                         <div class="bg-white shadow-2xl rounded-2xl p-8 flex flex-col border border-gray-100 relative overflow-hidden">
                             <!-- Decorative top accent -->
                             <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500"></div>
-                            
+
                             <!-- Header with icon -->
                             <div class="text-center mb-8">
                                 <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 mb-4 shadow-lg">
@@ -271,10 +273,10 @@
                                     Enter your email address and we'll send you a link to reset your password.
                                 </p>
                             </div>
-                            
+
                             <!-- Error Alert Container -->
                             <div id="forgot-password-error-alert" class="hidden mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm"></div>
-                            
+
                             <!-- Success Alert Container -->
                             <div id="forgot-password-success-alert" class="hidden mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm"></div>
 
@@ -312,7 +314,7 @@
                         <div class="bg-white shadow-2xl rounded-2xl p-8 flex flex-col border border-gray-100 relative overflow-hidden">
                             <!-- Decorative top accent -->
                             <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500 via-emerald-500 to-green-500"></div>
-                            
+
                             <!-- Header with icon -->
                             <div class="text-center mb-8">
                                 <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-green-600 mb-4 shadow-lg">
@@ -323,10 +325,10 @@
                                 <h1 class="text-3xl font-bold text-gray-800 mb-2">Create Account</h1>
                                 <p class="text-sm text-gray-500">Join us today</p>
                             </div>
-                            
+
                             <!-- Error Alert Container -->
                             <div id="register-error-alert" class="hidden mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm"></div>
-                            
+
                             <!-- Success Alert Container -->
                             <div id="register-success-alert" class="hidden mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm"></div>
 
@@ -392,7 +394,7 @@
                                     <span class="register-btn-loading hidden"><span class="loading-spinner mr-2"></span>Creating account...</span>
                                 </button>
                             </form>
-                           
+
 
                             <!-- Social login -->
                             <div class="mt-6 grid grid-cols-2 gap-3">
@@ -457,7 +459,7 @@
             // ============================================
             // Utility Functions
             // ============================================
-            
+
             /**
              * Show error message for a specific field
              */
@@ -538,7 +540,7 @@
                 if (button) {
                     const textSpan = button.querySelector('.btn-text, .login-btn-text, .forgot-btn-text, .register-btn-text');
                     const loadingSpan = button.querySelector('.btn-loading, .login-btn-loading, .forgot-btn-loading, .register-btn-loading');
-                    
+
                     if (isLoading) {
                         button.disabled = true;
                         if (textSpan) textSpan.classList.add('hidden');
@@ -587,7 +589,7 @@
                     }
                     return false;
                 }
-                
+
                 if (!isValidEmail(email)) {
                     showFieldError(fieldId, 'Please enter a valid email address.');
                     if (alertId) {
@@ -595,7 +597,7 @@
                     }
                     return false;
                 }
-                
+
                 return true;
             }
 
@@ -604,15 +606,15 @@
              */
             function handleApiError(error, formId, alertId) {
                 console.error('API Error:', error);
-                
+
                 let errorMessage = 'An error occurred. Please try again.';
-                
+
                 if (error.responseJSON) {
                     const response = error.responseJSON;
-                    
+
                     // Handle different API response formats
                     const errors = response.errors || response.error || response.message || response.data?.message;
-                    
+
                     if (typeof errors === 'object' && !Array.isArray(errors)) {
                         // Validation errors object (field-based)
                         Object.keys(errors).forEach(field => {
@@ -639,7 +641,7 @@
                 } else if (error.statusText) {
                     errorMessage = error.statusText;
                 }
-                
+
                 if (alertId) {
                     showAlert(alertId, errorMessage, 'error');
                 }
@@ -690,22 +692,63 @@
             /**
              * Store token in Laravel session
              */
-            function storeTokenInSession(token, userData) {
-                return $.ajax({
+            function storeTokenInSession(token, userData, profileData, roles) {
+                const csrfToken = $('meta[name="csrf-token"]').attr('content');
+
+                console.log('🌐 Making AJAX request to /api/store-token');
+                console.log('📋 Request payload:', {
+                    token: token ? 'Present' : 'Missing',
+                    hasUser: !!userData,
+                    hasProfile: !!profileData,
+                    roles: roles
+                });
+
+                // Build request data - only include roles if it exists
+                const requestData = {
+                    token: token,
+                    user: userData || null,
+                    profile: profileData || null
+                };
+
+                // Only add roles if it exists and is not null/empty
+                if (roles && roles !== null && roles !== '') {
+                    requestData.roles = String(roles);
+                }
+
+                const ajaxRequest = $.ajax({
                     url: '/api/store-token',
                     method: 'POST',
                     headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                        'X-CSRF-TOKEN': csrfToken,
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json'
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
                     },
-                    data: JSON.stringify({
-                        token: token,
-                        user: userData || null
-                    }),
+                    xhrFields: {
+                        withCredentials: true // Important: Send cookies with request
+                    },
+                    data: JSON.stringify(requestData),
                     contentType: 'application/json',
-                    dataType: 'json'
+                    dataType: 'json',
+                    crossDomain: false,
+                    beforeSend: function(xhr) {
+                        console.log('📡 Request being sent...');
+                        console.log('🔗 URL:', '/api/store-token');
+                        console.log('📤 Method: POST');
+                    }
                 });
+
+                // Add global error handler for debugging
+                ajaxRequest.fail(function(jqXHR, textStatus, errorThrown) {
+                    console.error('❌ AJAX Request Failed!');
+                    console.error('Status:', jqXHR.status);
+                    console.error('Status Text:', textStatus);
+                    console.error('Error:', errorThrown);
+                    console.error('Response:', jqXHR.responseText);
+                    console.error('Response JSON:', jqXHR.responseJSON);
+                });
+
+                return ajaxRequest;
             }
 
             /**
@@ -726,21 +769,21 @@
              */
             function handleLogin(e) {
                 e.preventDefault();
-                
+
                 const formId = 'login-form';
                 const alertId = 'login-error-alert';
                 const submitBtnId = 'login-submit-btn';
-                
+
                 // Clear previous errors
                 clearFormErrors(formId);
                 hideAlert(alertId);
                 hideAlert('login-success-alert');
-                
+
                 // Get form data
                 const formData = getFormData(formId);
                 const email = formData.email;
                 const password = formData.password;
-                
+
                 // Basic client-side validation
                 if (!email || !password) {
                     showAlert(alertId, 'Please fill in all fields.', 'error');
@@ -752,50 +795,118 @@
                     }
                     return;
                 }
-                
+
                 // Validate email format
                 if (!validateEmailField(email, 'login-email', alertId)) {
                     return;
                 }
-                
+
                 // Set loading state
                 setButtonLoading(submitBtnId, true);
-                
+
                 // Make API call
                 loginApi(email, password)
                     .done(function(response) {
                         // Handle success
                         console.log('Login successful:', response);
-                        
+
+                        // Handle new response structure: { status, message, data: { token, user, profile, roles } }
+                        let token = null;
+                        let userData = null;
+                        let profileData = null;
+                        let roles = null;
+
+                        if (response.data) {
+                            // New structure: response.data contains token, user, profile, roles
+                            token = response.data.token || response.data.access_token;
+                            userData = response.data.user || null;
+                            profileData = response.data.profile || null;
+                            roles = response.data.roles || null;
+                        } else {
+                            // Fallback to old structure
+                            token = response.token || response.access_token;
+                            userData = response.user || null;
+                        }
+
                         // Store token if provided
-                        if (response.token || response.data?.token || response.access_token) {
-                            const token = response.token || response.data?.token || response.access_token;
-                            const userData = response.user || response.data?.user || null;
-                            
+                        if (token) {
+                            // Merge user and profile data
+                            const mergedUserData = {
+                                ...userData,
+                                ...profileData,
+                                roles: roles
+                            };
+
                             // Store in localStorage as backup
                             localStorage.setItem('auth_token', token);
-                            if (userData) {
-                                localStorage.setItem('user_data', JSON.stringify(userData));
+                            if (mergedUserData) {
+                                localStorage.setItem('user_data', JSON.stringify(mergedUserData));
                             }
-                            
-                            // Store token in Laravel session
-                            storeTokenInSession(token, userData)
+
+                            // Show success message
+                            showAlert('login-success-alert', response.message || 'Login successful! Redirecting...', 'success');
+
+                            // Store token in Laravel session with full data structure, then redirect
+                            console.log('📤 Attempting to store token in session...');
+                            console.log('🔑 Token:', token ? 'Present (' + token.substring(0, 20) + '...)' : 'Missing');
+                            console.log('👤 User data:', mergedUserData);
+
+                            const csrfToken = $('meta[name="csrf-token"]').attr('content');
+                            console.log('🔐 CSRF Token:', csrfToken ? 'Present' : 'Missing');
+
+                            if (!csrfToken) {
+                                console.error('❌ CSRF Token is missing! Cannot proceed.');
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: 'CSRF token missing. Please refresh the page and try again.',
+                                    confirmButtonColor: '#3085d6'
+                                });
+                                return;
+                            }
+
+                            storeTokenInSession(token, mergedUserData, profileData, roles)
                                 .done(function(sessionResponse) {
-                                    console.log('Token stored in session:', sessionResponse);
+                                    console.log('✅ Token stored in session:', sessionResponse);
+                                    console.log('Session ID:', sessionResponse.session_id);
+                                    console.log('Has token:', sessionResponse.has_token);
+
+                                    if (sessionResponse.has_token) {
+                                        // Wait longer to ensure session is fully saved server-side
+                                        // Then redirect to home page with a fresh request
+                                        setTimeout(() => {
+                                            // Force a full page navigation to ensure session cookie is sent
+                                            // Use replace to avoid back button issues
+                                            window.location.replace(window.location.origin + '/');
+                                        }, 1500);
+                                    } else {
+                                        console.warn('⚠️ Token not found in session response, but continuing...');
+                                        setTimeout(() => {
+                                            window.location.href = '/';
+                                        }, 1500);
+                                    }
                                 })
                                 .fail(function(error) {
-                                    console.error('Failed to store token in session:', error);
-                                    // Continue anyway, token is in localStorage
+                                    console.error('❌ Failed to store token in session:', error);
+                                    console.error('Error details:', error.responseJSON || error.responseText || error);
+                                    console.error('Status:', error.status);
+                                    console.error('Status text:', error.statusText);
+
+                                    // Still redirect even if session storage fails (token is in localStorage)
+                                    Swal.fire({
+                                        icon: 'warning',
+                                        title: 'Warning',
+                                        text: 'Session storage failed, but you can still use the app. Token is stored in localStorage.',
+                                        confirmButtonColor: '#3085d6'
+                                    });
+                                    setTimeout(() => {
+                                        window.location.href = '/';
+                                    }, 1000);
                                 });
+                        } else {
+                            // No token, just show message
+                            showAlert('login-success-alert', response.message || 'Login successful!', 'success');
                         }
-                        
-                        // Show success message
-                        showAlert('login-success-alert', response.message || response.data?.message || 'Login successful! Redirecting...', 'success');
-                        
-                        // Redirect to dashboard/home page
-                        setTimeout(() => {
-                            window.location.href = '/';
-                        }, 1500);
                     })
                     .fail(function(error) {
                         // Handle error
@@ -812,23 +923,23 @@
              */
             function handleRegister(e) {
                 e.preventDefault();
-                
+
                 const formId = 'register-form';
                 const alertId = 'register-error-alert';
                 const submitBtnId = 'register-submit-btn';
-                
+
                 // Clear previous errors
                 clearFormErrors(formId);
                 hideAlert(alertId);
                 hideAlert('register-success-alert');
-                
+
                 // Get form data
                 const formData = getFormData(formId);
                 const name = formData.name;
                 const email = formData.email;
                 const password = formData.password;
                 const confirmPassword = formData.confirm_password;
-                
+
                 // Basic client-side validation
                 if (!name || !email || !password || !confirmPassword) {
                     showAlert(alertId, 'Please fill in all fields.', 'error');
@@ -846,65 +957,93 @@
                     }
                     return;
                 }
-                
+
                 // Validate email format
                 if (!validateEmailField(email, 'register-email', alertId)) {
                     return;
                 }
-                
+
                 if (password.length < 8) {
                     showAlert(alertId, 'Password must be at least 8 characters.', 'error');
                     showFieldError('register-password', 'Password must be at least 8 characters.');
                     return;
                 }
-                
+
                 // Validate password match
                 if (password !== confirmPassword) {
                     showAlert(alertId, 'Passwords do not match.', 'error');
                     showFieldError('register-confirm-password', 'Passwords do not match.');
                     return;
                 }
-                
+
                 // Set loading state
                 setButtonLoading(submitBtnId, true);
-                
+
                 // Make API call
                 registerApi(name, email, password, confirmPassword)
                     .done(function(response) {
                         // Handle success
                         console.log('Registration successful:', response);
-                        
+
+                        // Handle new response structure: { status, message, data: { token, user, profile, roles } }
+                        let token = null;
+                        let userData = null;
+                        let profileData = null;
+                        let roles = null;
+
+                        if (response.data) {
+                            // New structure: response.data contains token, user, profile, roles
+                            token = response.data.token || response.data.access_token;
+                            userData = response.data.user || null;
+                            profileData = response.data.profile || null;
+                            roles = response.data.roles || null;
+                        } else {
+                            // Fallback to old structure
+                            token = response.token || response.access_token;
+                            userData = response.user || null;
+                        }
+
                         // Store token if provided
-                        if (response.token || response.data?.token || response.access_token) {
-                            const token = response.token || response.data?.token || response.access_token;
-                            const userData = response.user || response.data?.user || null;
-                            
+                        if (token) {
+                            // Merge user and profile data
+                            const mergedUserData = {
+                                ...userData,
+                                ...profileData,
+                                roles: roles
+                            };
+
                             // Store in localStorage as backup
                             localStorage.setItem('auth_token', token);
-                            if (userData) {
-                                localStorage.setItem('user_data', JSON.stringify(userData));
+                            if (mergedUserData) {
+                                localStorage.setItem('user_data', JSON.stringify(mergedUserData));
                             }
-                            
-                            // Store token in Laravel session
-                            storeTokenInSession(token, userData)
+
+                            // Show success message
+                            showAlert('register-success-alert', response.message || 'Registration successful! Redirecting...', 'success');
+
+                            // Store token in Laravel session with full data structure, then redirect
+                            storeTokenInSession(token, mergedUserData, profileData, roles)
                                 .done(function(sessionResponse) {
                                     console.log('Token stored in session:', sessionResponse);
+                                    // Redirect after token is stored in session
+                                    setTimeout(() => {
+                                        window.location.href = '/';
+                                    }, 500);
                                 })
                                 .fail(function(error) {
                                     console.error('Failed to store token in session:', error);
-                                    // Continue anyway, token is in localStorage
+                                    // Still redirect even if session storage fails
+                                    setTimeout(() => {
+                                        window.location.href = '/';
+                                    }, 500);
                                 });
+                        } else {
+                            // No token, redirect to login page
+                            showAlert('register-success-alert', response.message || 'Registration successful! Redirecting to login...', 'success');
+                            setTimeout(() => {
+                                flipToLogin();
+                            }, 2000);
                         }
-                        
-                        // Show success message
-                        showAlert('register-success-alert', response.message || response.data?.message || 'Registration successful! Redirecting to login...', 'success');
-                        
-                        // Option 1: Redirect to login page
-                        setTimeout(() => {
-                            flipToLogin();
-                            // Option 2: Or redirect directly if auto-login is enabled
-                            // window.location.href = '/';
-                        }, 2000);
                     })
                     .fail(function(error) {
                         // Handle error
@@ -921,37 +1060,37 @@
              */
             function handleForgotPassword(e) {
                 e.preventDefault();
-                
+
                 const formId = 'forgot-password-form';
                 const alertId = 'forgot-password-error-alert';
                 const submitBtnId = 'forgot-password-submit-btn';
-                
+
                 // Clear previous errors
                 clearFormErrors(formId);
                 hideAlert(alertId);
                 hideAlert('forgot-password-success-alert');
-                
+
                 // Get form data
                 const formData = getFormData(formId);
                 const email = formData.email;
-                
+
                 // Validate email format
                 if (!validateEmailField(email, 'forgot-email', alertId)) {
                     return;
                 }
-                
+
                 // Set loading state
                 setButtonLoading(submitBtnId, true);
-                
+
                 // Make API call
                 forgotPasswordApi(email)
                     .done(function(response) {
                         // Handle success
                         console.log('Forgot password successful:', response);
-                        
+
                         // Show success message
                         showAlert('forgot-password-success-alert', response.message || 'Password reset link has been sent to your email.', 'success');
-                        
+
                         // Clear form
                         document.getElementById('forgot-email').value = '';
                     })
@@ -975,7 +1114,7 @@
                 const loginSide = document.getElementById('login-side');
                 const forgotPasswordSide = document.getElementById('forgot-password-side');
                 const registerSide = document.getElementById('register-side');
-                
+
                 // Get the height of the currently visible side
                 let visibleHeight = 0;
                 if (currentSide === 'login' && loginSide) {
@@ -985,7 +1124,7 @@
                 } else if (currentSide === 'register' && registerSide) {
                     visibleHeight = registerSide.querySelector('div').offsetHeight;
                 }
-                
+
                 // Set the flip-card height to match the visible content
                 if (card && visibleHeight > 0) {
                     card.style.height = visibleHeight + 'px';
@@ -1055,10 +1194,10 @@
                     i = (i + 1) % $slides.length;
                     $slides.eq(i).fadeIn(5000);
                 }, 6000);
-                
+
                 // Initialize flip card height on page load
                 updateFlipCardHeight();
-                
+
                 // Update height on window resize
                 $(window).on('resize', function() {
                     updateFlipCardHeight();
@@ -1086,7 +1225,7 @@
                 $('#login-email, #register-email, #forgot-email').on('blur', function() {
                     const email = $(this).val();
                     const fieldId = this.id;
-                    
+
                     if (email && email.trim() !== '') {
                         if (!isValidEmail(email)) {
                             showFieldError(fieldId, 'Please enter a valid email address.');

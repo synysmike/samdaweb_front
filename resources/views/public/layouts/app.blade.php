@@ -3,9 +3,12 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>My Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         [x-cloak] { display: none !important; }
     </style>
@@ -16,11 +19,19 @@
     <!-- Header -->
     <header class="shadow-md theme-navbar" x-data="{ open: false, userDropdownOpen: false }" style="background-color: #8b5cf6;">
         @php
-            $isLoggedIn = session()->has('sanctum_token');
+            // Force session to start and read
+            if (!session()->isStarted()) {
+                session()->start();
+            }
+            
+            // Check session with more explicit check
+            $sanctumToken = session('sanctum_token', null);
+            $isLoggedIn = !empty($sanctumToken);
+            
             $userData = session('user_data', null);
-            $userName = $userData['name'] ?? ($userData['name'] ?? 'User');
-            $userEmail = $userData['email'] ?? ($userData['email'] ?? '');
-            $userImage = $userData['image'] ?? ($userData['avatar'] ?? null);
+            $userName = $userData['name'] ?? 'User';
+            $userEmail = $userData['email'] ?? '';
+            $userImage = $userData['profile_picture'] ?? $userData['image'] ?? $userData['avatar'] ?? null;
         @endphp
         
         <div class="container mx-auto flex justify-between items-center py-4 px-6 gap-4">

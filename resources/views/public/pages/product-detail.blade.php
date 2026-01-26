@@ -109,7 +109,12 @@
             const product = response.data || response;
             ProductUtils.renderProductDetail(product);
         }).fail(function() {
-            alert('Product not found');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Product not found',
+                confirmButtonColor: '#3085d6'
+            });
         });
         */
 
