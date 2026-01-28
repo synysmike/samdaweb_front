@@ -36,6 +36,15 @@
                 <a href="{{ route('admin.products.index') }}" class="block px-4 py-2 rounded {{ request()->routeIs('admin.products.*') ? 'bg-gray-700' : 'hover:bg-gray-700' }} transition-colors">
                     Products
                 </a>
+                <div class="mt-2">
+                    <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Page Content</div>
+                    <a href="{{ route('admin.page-content.terms-conditions.edit') }}" class="block px-4 py-2 ml-4 rounded {{ request()->routeIs('admin.page-content.terms-conditions.*') ? 'bg-gray-700' : 'hover:bg-gray-700' }} transition-colors">
+                        Terms & Conditions
+                    </a>
+                    <a href="{{ route('admin.page-content.seller-agreement.edit') }}" class="block px-4 py-2 ml-4 rounded {{ request()->routeIs('admin.page-content.seller-agreement.*') ? 'bg-gray-700' : 'hover:bg-gray-700' }} transition-colors">
+                        Seller Agreement
+                    </a>
+                </div>
                 <!-- Add more navigation items here -->
             </nav>
             

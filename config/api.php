@@ -43,6 +43,28 @@ return [
             'states' => '/api/v1/world/states',
             'cities' => '/api/v1/world/cities',
         ],
+        'product_category' => [
+            'index' => '/api/v1/product-category/get-product-categories',
+            'store' => '/api/v1/product-category/store-product-category',
+            'delete' => '/api/v1/product-category/delete-product-category',
+        ],
+        'product_sub_category' => [
+            'index' => '/api/v1/product-sub-category/get-product-sub-categories',
+            'store' => '/api/v1/product-sub-category/store-product-sub-category',
+            'delete' => '/api/v1/product-sub-category/delete-product-sub-category',
+        ],
+        'product' => [
+            'index' => '/api/v1/product/get-products',
+            'store' => '/api/v1/product/store-product',
+            'delete' => '/api/v1/product/delete-product', // Prepared for future endpoint
+        ],
+        'product_image' => [
+            'store' => '/api/v1/product-image/store-product-image',
+        ],
+        'shop' => [
+            'get' => '/api/v1/shop/get-shop',
+            'store' => '/api/v1/shop/store-shop',
+        ],
     ],
 
     /*

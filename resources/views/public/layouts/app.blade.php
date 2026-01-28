@@ -132,7 +132,7 @@
                             </div>
                             <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
                             <a href="/orders" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Orders</a>
-                            <a href="/settings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Settings</a>
+                            <a href="/seller" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Seller Page</a>
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
                                 <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
@@ -204,7 +204,7 @@
                             <a href="/cart" class="w-full text-center py-2 hover:[style-color:var(--primary-color)]">🛒 Cart</a>
                             <a href="/profile" class="w-full text-center py-2 hover:[style-color:var(--primary-color)]">Profile</a>
                             <a href="/orders" class="w-full text-center py-2 hover:[style-color:var(--primary-color)]">My Orders</a>
-                            <a href="/settings" class="w-full text-center py-2 hover:[style-color:var(--primary-color)]">Settings</a>
+                            <a href="/seller" class="w-full text-center py-2 hover:[style-color:var(--primary-color)]">Seller Page</a>
                             <form method="POST" action="{{ route('logout') }}" class="w-full">
                                 @csrf
                                 <button type="submit" class="w-full py-2 text-red-600 hover:text-red-700 font-medium">
