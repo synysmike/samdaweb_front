@@ -1,6 +1,25 @@
 @extends('public.seller.layout')
 
 @section('seller-content')
+<!-- jQuery and Select2 for location -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .select2-container--default .select2-selection--single { height: 42px; border: 1px solid #d1d5db; border-radius: 0.5rem; }
+    .select2-container--default .select2-selection--single .select2-selection__rendered { line-height: 42px; padding-left: 16px; }
+    .select2-container { width: 100% !important; }
+    .product-image-slider { position: relative; width: 5rem; height: 5rem; border-radius: 0.5rem; overflow: hidden; background: #f3f4f6; }
+    .product-image-slider .slides { position: relative; width: 100%; height: 100%; }
+    .product-image-slider .slide { position: absolute; inset: 0; opacity: 0; transition: opacity 0.25s ease; pointer-events: none; }
+    .product-image-slider .slide.active { opacity: 1; z-index: 1; pointer-events: auto; }
+    .product-image-slider .slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .product-image-slider .slider-btn { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; width: 1.5rem; height: 1.5rem; border: 0; border-radius: 9999px; background: rgba(0,0,0,0.5); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0.7; transition: opacity 0.2s; font-size: 0.75rem; }
+    .product-image-slider .slider-btn:hover { opacity: 1; background: rgba(0,0,0,0.7); }
+    .product-image-slider .slider-prev { left: 2px; }
+    .product-image-slider .slider-next { right: 2px; }
+</style>
+
 <div class="space-y-6">
     <!-- Header -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -63,38 +82,23 @@
         </div>
         <form id="productForm" class="p-6 space-y-4">
             <input type="hidden" id="productId" name="id" value="">
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label for="productName" class="block text-sm font-medium text-gray-700 mb-2">Product Name <span class="text-red-500">*</span></label>
-                    <input type="text" id="productName" name="name" required
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Enter product name">
-                </div>
-
-                <div>
-                    <label for="productPrice" class="block text-sm font-medium text-gray-700 mb-2">Price <span class="text-red-500">*</span></label>
-                    <input type="number" id="productPrice" name="price" step="0.01" min="0" required
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="0.00">
-                </div>
-            </div>
+            <input type="hidden" id="productShopId" name="shop_id" value="{{ isset($shop) ? ($shop['id'] ?? '') : '' }}">
+            <input type="hidden" id="productSlug" name="slug" value="">
+            <input type="hidden" id="productCreatedAt" name="created_at" value="">
+            <input type="hidden" id="productUpdatedAt" name="updated_at" value="">
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label for="productCategoryId" class="block text-sm font-medium text-gray-700 mb-2">Category <span class="text-red-500">*</span></label>
-                    <select id="productCategoryId" name="category_id" required
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="">Select a category</option>
-                    </select>
+                    <label for="productTitle" class="block text-sm font-medium text-gray-700 mb-2">Title <span class="text-red-500">*</span></label>
+                    <input type="text" id="productTitle" name="title" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter product title">
                 </div>
-
                 <div>
-                    <label for="productSubCategoryId" class="block text-sm font-medium text-gray-700 mb-2">Subcategory</label>
-                    <select id="productSubCategoryId" name="sub_category_id"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="">Select a subcategory</option>
-                    </select>
+                    <label for="productSku" class="block text-sm font-medium text-gray-700 mb-2">SKU</label>
+                    <input type="text" id="productSku" name="sku"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="e.g. SKU-001">
                 </div>
             </div>
 
@@ -107,23 +111,52 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label for="productStock" class="block text-sm font-medium text-gray-700 mb-2">Stock Quantity</label>
-                    <input type="number" id="productStock" name="stock" min="0"
+                    <label for="productCategoryId" class="block text-sm font-medium text-gray-700 mb-2">Category <span class="text-red-500">*</span></label>
+                    <select id="productCategoryId" name="category_id" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">Select a category</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="productSubCategoryId" class="block text-sm font-medium text-gray-700 mb-2">Subcategory</label>
+                    <select id="productSubCategoryId" name="sub_category_id"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">Select a subcategory</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="productPrice" class="block text-sm font-medium text-gray-700 mb-2">Price <span class="text-red-500">*</span></label>
+                    <input type="text" id="productPrice" name="price" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="0.00">
+                </div>
+                <div>
+                    <label for="productDiscountPrice" class="block text-sm font-medium text-gray-700 mb-2">Discount Price</label>
+                    <input type="text" id="productDiscountPrice" name="discount_price"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="0.00 or leave empty">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="productStock" class="block text-sm font-medium text-gray-700 mb-2">Stock</label>
+                    <input type="text" id="productStock" name="stock"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="0">
                 </div>
-
                 <div>
-                    <label for="productIsActive" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Is Active</label>
                     <div class="flex items-center space-x-4">
                         <label class="flex items-center">
-                            <input type="radio" name="is_active" value="1" checked
-                                class="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                            <input type="radio" name="is_active" value="1" checked class="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300">
                             <span class="ml-2 text-sm text-gray-700">Active</span>
                         </label>
                         <label class="flex items-center">
-                            <input type="radio" name="is_active" value="0"
-                                class="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                            <input type="radio" name="is_active" value="0" class="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300">
                             <span class="ml-2 text-sm text-gray-700">Inactive</span>
                         </label>
                     </div>
@@ -131,7 +164,49 @@
             </div>
 
             <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Is Visible</label>
+                <div class="flex items-center space-x-4">
+                    <label class="flex items-center">
+                        <input type="radio" name="is_visible" value="1" checked class="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                        <span class="ml-2 text-sm text-gray-700">Visible</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="radio" name="is_visible" value="0" class="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                        <span class="ml-2 text-sm text-gray-700">Hidden</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="productCountryId" class="block text-sm font-medium text-gray-700 mb-2">Country</label>
+                    <select id="productCountryId" name="country_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">From shop profile</option>
+                    </select>
+                    <input type="hidden" id="productCountryName" name="country_name" value="">
+                </div>
+                <div>
+                    <label for="productStateId" class="block text-sm font-medium text-gray-700 mb-2">State</label>
+                    <select id="productStateId" name="state_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">From shop profile</option>
+                    </select>
+                    <input type="hidden" id="productStateName" name="state_name" value="">
+                </div>
+                <div>
+                    <label for="productCityId" class="block text-sm font-medium text-gray-700 mb-2">City</label>
+                    <select id="productCityId" name="city_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">From shop profile</option>
+                    </select>
+                    <input type="hidden" id="productCityName" name="city_name" value="">
+                </div>
+            </div>
+
+            <div>
                 <label for="productImages" class="block text-sm font-medium text-gray-700 mb-2">Product Images</label>
+                <div id="existingImagesPreview" class="mb-3 hidden">
+                    <p class="text-xs font-medium text-gray-600 mb-2">Current images</p>
+                    <div id="existingImagesGrid" class="grid grid-cols-4 gap-4"></div>
+                </div>
                 <input type="file" id="productImages" name="images[]" multiple accept="image/*"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 <p class="text-xs text-gray-500 mt-1">You can select multiple images. Max file size: 1MB per image.</p>
@@ -158,11 +233,44 @@
     let categories = [];
     let subcategories = [];
 
-    // Load data on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        loadCategories();
-        loadSubCategories();
+    const shopId = '{{ isset($shop) ? ($shop["id"] ?? "") : "" }}';
+    const API_BASE_URL = ((@json(config('api.base_url'))) || '').replace(/\/$/, '');
+    // Product images are served by the API. Build URL: API_BASE_URL + /storage/ + path.
+    function imageUrlFromFilePath(filePath) {
+        if (!filePath || typeof filePath !== 'string') return null;
+        if (filePath.startsWith('http://') || filePath.startsWith('https://')) return filePath;
+        let rel = String(filePath).replace(/^\/+/, '');
+        for (const p of ['storage/app/public/', 'app/public/', 'storage/']) {
+            if (rel.startsWith(p)) { rel = rel.slice(p.length); break; }
+        }
+        rel = rel.replace(/^\/+/, '');
+        if (!rel) return null;
+        const path = '/storage/' + rel;
+        return API_BASE_URL ? (API_BASE_URL + path) : path;
+    }
+
+    @php
+        $shopLocationData = isset($shop) ? [
+            'country_id' => $shop['country_id'] ?? null,
+            'state_id' => $shop['state_id'] ?? null,
+            'city_id' => $shop['city_id'] ?? null,
+            'country_name' => $shop['country_name'] ?? '',
+            'state_name' => $shop['state_name'] ?? '',
+            'city_name' => $shop['city_name'] ?? '',
+        ] : [];
+    @endphp
+    const shopLocation = @json($shopLocationData);
+
+    // Load data on page load (await cat/subcat so dropdowns are ready when modal opens)
+    document.addEventListener('DOMContentLoaded', async function() {
+        await loadCategories();
+        await loadSubCategories();
         loadProducts();
+        applyShopLocationToProductForm();
+        document.getElementById('productTitle').addEventListener('blur', function() {
+            const slug = (this.value || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+            document.getElementById('productSlug').value = slug;
+        });
     });
 
     // Load categories
@@ -180,7 +288,8 @@
 
             const result = await response.json();
             if (result.status === 'success' || result.success) {
-                categories = result.data || [];
+                const raw = result.data || result.categories || [];
+                categories = raw.map(c => ({ id: String(c.id ?? c.categoryId ?? ''), name: c.name ?? '' }));
             }
         } catch (error) {
             console.error('Error loading categories:', error);
@@ -202,7 +311,12 @@
 
             const result = await response.json();
             if (result.status === 'success' || result.success) {
-                subcategories = result.data || [];
+                const raw = result.data || result.subcategories || [];
+                subcategories = raw.map(s => ({
+                    id: String(s.id ?? s.subcategoryId ?? ''),
+                    name: s.name ?? '',
+                    category_id: String(s.category_id ?? s.categoryId ?? '')
+                }));
             }
         } catch (error) {
             console.error('Error loading subcategories:', error);
@@ -241,6 +355,7 @@
 
             if (result.status === 'success' || result.success) {
                 products = result.data || [];
+                await loadProductImagesAndMerge();
                 renderProducts();
             } else {
                 Swal.fire({
@@ -256,6 +371,39 @@
                 title: 'Error',
                 text: 'An error occurred while loading products'
             });
+        }
+    }
+
+    // Fetch product images (POST { product_id }) and merge into products. Response: { success, data: [ { file_path, ... } ] }
+    async function fetchProductImages(productId) {
+        const res = await fetch('{{ route("api.seller.products.images") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ product_id: String(productId) })
+        });
+        const json = await res.json();
+        const list = (json.success && json.data) ? json.data : [];
+        return list.map(item => imageUrlFromFilePath(item.file_path)).filter(Boolean);
+    }
+
+    async function loadProductImagesAndMerge() {
+        try {
+            const pair = await Promise.all(products.map(async (p) => {
+                const urls = await fetchProductImages(p.id);
+                return [p, urls];
+            }));
+            pair.forEach(([p, urls]) => {
+                p.images = urls;
+                p.image = urls[0] || null;
+            });
+        } catch (e) {
+            console.warn('Could not load product images:', e);
         }
     }
 
@@ -281,18 +429,25 @@
 
         tbody.innerHTML = products.map(product => {
             const isActive = product.is_active === true || product.is_active === '1' || product.is_active === 1;
-            const category = categories.find(cat => cat.id === product.category_id);
+            const category = categories.find(cat => String(cat.id) === String(product.category_id ?? product.categoryId ?? ''));
             const categoryName = category ? category.name : 'N/A';
-            const imageUrl = product.image || product.images?.[0] || '/placeholder-image.png';
-            
+            const imgs = (product.images && product.images.length) ? product.images : ['/placeholder-image.svg'];
+            const displayName = product.title || product.name || 'N/A';
+            const slidesHtml = imgs.map((url, i) =>
+                `<div class="slide ${i === 0 ? 'active' : ''}" data-index="${i}"><img src="${escapeHtml(url)}" alt="${escapeHtml(displayName)}" onerror="this.src='/placeholder-image.svg'"></div>`
+            ).join('');
+            const multi = imgs.length > 1;
+            const navHtml = multi ? `<button type="button" class="slider-btn slider-prev" onclick="productImageSliderPrev(this)" aria-label="Previous">&lsaquo;</button><button type="button" class="slider-btn slider-next" onclick="productImageSliderNext(this)" aria-label="Next">&rsaquo;</button>` : '';
             return `
                 <tr class="hover:bg-gray-50">
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(product.name || 'Product')}" 
-                             class="w-16 h-16 object-cover rounded-lg">
+                        <div class="product-image-slider" data-current="0">
+                            <div class="slides">${slidesHtml}</div>
+                            ${navHtml}
+                        </div>
                     </td>
                     <td class="px-6 py-4">
-                        <div class="text-sm font-medium text-gray-900">${escapeHtml(product.name || 'N/A')}</div>
+                        <div class="text-sm font-medium text-gray-900">${escapeHtml(displayName)}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="text-sm text-gray-500">${escapeHtml(categoryName)}</div>
@@ -310,7 +465,7 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button onclick="editProduct('${product.id}')" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
-                        <button onclick="deleteProduct('${product.id}', '${escapeHtml(product.name)}')" class="text-red-600 hover:text-red-900">Delete</button>
+                        <button onclick="deleteProduct('${product.id}', '${escapeHtml(displayName)}')" class="text-red-600 hover:text-red-900">Delete</button>
                     </td>
                 </tr>
             `;
@@ -322,12 +477,18 @@
         document.getElementById('productModalTitle').textContent = 'Add Product';
         document.getElementById('productForm').reset();
         document.getElementById('productId').value = '';
+        document.getElementById('productShopId').value = shopId;
+        document.getElementById('productSlug').value = '';
+        document.getElementById('productCreatedAt').value = '';
+        document.getElementById('productUpdatedAt').value = '';
         document.getElementById('imagePreview').innerHTML = '';
+        document.getElementById('existingImagesPreview').classList.add('hidden');
+        document.getElementById('existingImagesGrid').innerHTML = '';
+        document.getElementById('productImages').value = '';
         document.querySelector('input[name="is_active"][value="1"]').checked = true;
-        
-        // Populate category dropdown
+        document.querySelector('input[name="is_visible"][value="1"]').checked = true;
         populateCategoryDropdown();
-        
+        applyShopLocationToProductForm();
         document.getElementById('productModal').classList.remove('hidden');
     }
 
@@ -336,7 +497,14 @@
         document.getElementById('productModal').classList.add('hidden');
         document.getElementById('productForm').reset();
         document.getElementById('productId').value = '';
+        document.getElementById('productShopId').value = shopId;
+        document.getElementById('productSlug').value = '';
+        document.getElementById('productCreatedAt').value = '';
+        document.getElementById('productUpdatedAt').value = '';
         document.getElementById('imagePreview').innerHTML = '';
+        document.getElementById('existingImagesPreview').classList.add('hidden');
+        document.getElementById('existingImagesGrid').innerHTML = '';
+        document.getElementById('productImages').value = '';
     }
 
     // Populate category dropdown
@@ -351,22 +519,51 @@
         });
     }
 
-    // Handle category change to load subcategories
-    document.getElementById('productCategoryId').addEventListener('change', function() {
-        const categoryId = this.value;
+    // Populate subcategory dropdown for a given category
+    function populateSubcategoryDropdown(categoryId) {
         const subCategorySelect = document.getElementById('productSubCategoryId');
         subCategorySelect.innerHTML = '<option value="">Select a subcategory</option>';
-        
-        if (categoryId) {
-            const filteredSubcategories = subcategories.filter(sub => sub.category_id === categoryId);
-            filteredSubcategories.forEach(subcategory => {
-                const option = document.createElement('option');
-                option.value = subcategory.id;
-                option.textContent = subcategory.name;
-                subCategorySelect.appendChild(option);
-            });
-        }
+        if (!categoryId) return;
+        const cid = String(categoryId);
+        subcategories.filter(sub => String(sub.category_id) === cid).forEach(sub => {
+            const option = document.createElement('option');
+            option.value = sub.id;
+            option.textContent = sub.name;
+            subCategorySelect.appendChild(option);
+        });
+    }
+
+    // Handle category change to load subcategories
+    document.getElementById('productCategoryId').addEventListener('change', function() {
+        populateSubcategoryDropdown(this.value);
     });
+
+    function applyShopLocationToProductForm() {
+        const cSel = document.getElementById('productCountryId');
+        const sSel = document.getElementById('productStateId');
+        const citySel = document.getElementById('productCityId');
+        const cName = document.getElementById('productCountryName');
+        const sName = document.getElementById('productStateName');
+        const cityName = document.getElementById('productCityName');
+
+        const cId = shopLocation.country_id != null ? String(shopLocation.country_id) : '';
+        const sId = shopLocation.state_id != null ? String(shopLocation.state_id) : '';
+        const cityId = shopLocation.city_id != null ? String(shopLocation.city_id) : '';
+        const cLabel = shopLocation.country_name || 'Shop country';
+        const sLabel = shopLocation.state_name || 'Shop state';
+        const cityLabel = shopLocation.city_name || 'Shop city';
+
+        cSel.innerHTML = cId ? `<option value="${cId}">${escapeHtml(cLabel)}</option>` : '<option value="">No country in shop profile</option>';
+        sSel.innerHTML = sId ? `<option value="${sId}">${escapeHtml(sLabel)}</option>` : '<option value="">No state in shop profile</option>';
+        citySel.innerHTML = cityId ? `<option value="${cityId}">${escapeHtml(cityLabel)}</option>` : '<option value="">No city in shop profile</option>';
+
+        cSel.value = cId;
+        sSel.value = sId;
+        citySel.value = cityId;
+        cName.value = cLabel;
+        sName.value = sLabel;
+        cityName.value = cityLabel;
+    }
 
     // Handle image preview
     document.getElementById('productImages').addEventListener('change', function(e) {
@@ -398,36 +595,66 @@
     });
 
     // Edit product
-    function editProduct(id) {
+    async function editProduct(id) {
         const product = products.find(p => p.id === id);
         if (!product) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Product not found'
-            });
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Product not found' });
             return;
         }
 
         document.getElementById('productModalTitle').textContent = 'Edit Product';
-        document.getElementById('productId').value = product.id;
-        document.getElementById('productName').value = product.name || '';
-        document.getElementById('productPrice').value = product.price || '';
+        document.getElementById('productId').value = product.id || '';
+        document.getElementById('productShopId').value = product.shop_id || shopId;
+        document.getElementById('productTitle').value = product.title || product.name || '';
+        document.getElementById('productSlug').value = product.slug || '';
         document.getElementById('productDescription').value = product.description || '';
-        document.getElementById('productStock').value = product.stock || '';
-        
+        document.getElementById('productSku').value = product.sku || '';
+        document.getElementById('productPrice').value = product.price ?? '';
+        document.getElementById('productDiscountPrice').value = product.discount_price ?? '';
+        document.getElementById('productStock').value = product.stock ?? '';
+        document.getElementById('productCreatedAt').value = product.created_at || '';
+        document.getElementById('productUpdatedAt').value = product.updated_at || '';
+        document.getElementById('productCountryName').value = product.country_name || '';
+        document.getElementById('productStateName').value = product.state_name || '';
+        document.getElementById('productCityName').value = product.city_name || '';
+
         populateCategoryDropdown();
-        setTimeout(() => {
-            document.getElementById('productCategoryId').value = product.category_id || '';
-            document.getElementById('productCategoryId').dispatchEvent(new Event('change'));
-            setTimeout(() => {
-                document.getElementById('productSubCategoryId').value = product.sub_category_id || '';
-            }, 100);
-        }, 100);
-        
+        const catId = product.category_id ?? product.categoryId ?? '';
+        const subId = product.sub_category_id ?? product.subCategoryId ?? '';
+        document.getElementById('productCategoryId').value = catId;
+        populateSubcategoryDropdown(catId);
+        document.getElementById('productSubCategoryId').value = subId;
+
         const isActive = product.is_active === true || product.is_active === '1' || product.is_active === 1;
         document.querySelector(`input[name="is_active"][value="${isActive ? '1' : '0'}"]`).checked = true;
-        
+        const isVisible = product.is_visible !== false && product.is_visible !== '0' && product.is_visible !== 0;
+        document.querySelector(`input[name="is_visible"][value="${isVisible ? '1' : '0'}"]`).checked = true;
+
+        applyShopLocationToProductForm();
+
+        document.getElementById('imagePreview').innerHTML = '';
+        document.getElementById('productImages').value = '';
+        const existingEl = document.getElementById('existingImagesPreview');
+        const gridEl = document.getElementById('existingImagesGrid');
+        gridEl.innerHTML = '';
+        try {
+            const urls = await fetchProductImages(product.id);
+            if (urls.length) {
+                urls.forEach(url => {
+                    const div = document.createElement('div');
+                    div.className = 'relative';
+                    div.innerHTML = `<img src="${escapeHtml(url)}" alt="" class="w-full h-24 object-cover rounded-lg">`;
+                    gridEl.appendChild(div);
+                });
+                existingEl.classList.remove('hidden');
+            } else {
+                existingEl.classList.add('hidden');
+            }
+        } catch (e) {
+            console.warn('Could not load product images for edit:', e);
+            existingEl.classList.add('hidden');
+        }
+
         document.getElementById('productModal').classList.remove('hidden');
     }
 
@@ -476,7 +703,7 @@
                     return;
                 }
 
-                if (data.status === 'success' || response.ok) {
+                if (data.success || data.status === 'success' || response.ok) {
                     Swal.fire({
                         icon: 'success',
                         title: 'Deleted!',
@@ -488,10 +715,10 @@
                     });
                     loadProducts();
                 } else {
-                    const errorMsg = data.message || data.data?.message || 'Failed to delete product. Endpoint may not be ready yet.';
+                    const errorMsg = data.message || data.data?.message || 'Failed to delete product.';
                     Swal.fire({
-                        icon: 'warning',
-                        title: 'Delete Endpoint Not Ready',
+                        icon: 'error',
+                        title: 'Delete failed',
                         text: errorMsg,
                         confirmButtonText: 'OK'
                     });
@@ -499,9 +726,9 @@
             } catch (error) {
                 console.error('Error deleting product:', error);
                 Swal.fire({
-                    icon: 'warning',
-                    title: 'Delete Endpoint Not Ready',
-                    text: 'The delete endpoint is not available yet. Please try again later.'
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Could not delete product. Please try again.'
                 });
             }
         }
@@ -511,32 +738,41 @@
     document.getElementById('productForm').addEventListener('submit', async function(e) {
         e.preventDefault();
 
-        const formData = {
-            id: document.getElementById('productId').value || null,
-            name: document.getElementById('productName').value.trim(),
-            price: parseFloat(document.getElementById('productPrice').value) || 0,
-            category_id: document.getElementById('productCategoryId').value,
-            sub_category_id: document.getElementById('productSubCategoryId').value || null,
-            description: document.getElementById('productDescription').value.trim(),
-            stock: parseInt(document.getElementById('productStock').value) || 0,
-            is_active: document.querySelector('input[name="is_active"]:checked').value === '1'
-        };
-
-        if (!formData.name) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Validation Error',
-                text: 'Product name is required'
-            });
-            return;
+        const titleVal = document.getElementById('productTitle').value.trim();
+        let slugVal = document.getElementById('productSlug').value.trim();
+        if (!slugVal && titleVal) {
+            slugVal = titleVal.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+            document.getElementById('productSlug').value = slugVal;
         }
 
+        const countryIdRaw = document.getElementById('productCountryId').value;
+        const stateIdRaw = document.getElementById('productStateId').value;
+        const cityIdRaw = document.getElementById('productCityId').value;
+
+        const productIdVal = document.getElementById('productId').value.trim() || null;
+        const formData = {
+            title: titleVal || '',
+            description: document.getElementById('productDescription').value.trim() || '',
+            category_id: document.getElementById('productCategoryId').value || '',
+            sub_category_id: document.getElementById('productSubCategoryId').value || '',
+            is_active: document.querySelector('input[name="is_active"]:checked').value === '1',
+            is_visible: document.querySelector('input[name="is_visible"]:checked').value === '1',
+            stock: parseInt(document.getElementById('productStock').value.trim() || '0', 10) || 0,
+            sku: document.getElementById('productSku').value.trim() || '',
+            price: parseFloat(document.getElementById('productPrice').value.trim() || '0') || 0,
+            discount_price: parseFloat(document.getElementById('productDiscountPrice').value.trim() || '0') || 0,
+            country_id: countryIdRaw ? parseInt(countryIdRaw, 10) : 0,
+            state_id: stateIdRaw ? parseInt(stateIdRaw, 10) : 0,
+            city_id: cityIdRaw ? parseInt(cityIdRaw, 10) : 0
+        };
+        if (productIdVal) formData.id = productIdVal;
+
+        if (!formData.title) {
+            Swal.fire({ icon: 'error', title: 'Validation Error', text: 'Product title is required' });
+            return;
+        }
         if (!formData.category_id) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Validation Error',
-                text: 'Please select a category'
-            });
+            Swal.fire({ icon: 'error', title: 'Validation Error', text: 'Please select a category' });
             return;
         }
 
@@ -571,7 +807,7 @@
                 return;
             }
 
-            if (data.status === 'success' || response.ok) {
+            if (data.success || data.status === 'success' || response.ok) {
                 const productId = data.data?.id || formData.id;
                 
                 // Handle image uploads if any
@@ -592,10 +828,24 @@
                 closeProductModal();
                 loadProducts();
             } else {
+                let errorHtml = '';
+                const msg = data.message || 'Validation failed';
+                if (data.errors && typeof data.errors === 'object') {
+                    const list = [];
+                    Object.keys(data.errors).forEach(function(field) {
+                        const messages = Array.isArray(data.errors[field]) ? data.errors[field] : [data.errors[field]];
+                        messages.forEach(function(m) { list.push('<strong>' + field + ':</strong> ' + m); });
+                    });
+                    if (list.length) {
+                        errorHtml = '<div class="text-left"><p class="mb-2">' + msg + '</p><ul class="list-unstyled mb-0">' +
+                            list.map(function(l) { return '<li>' + l + '</li>'; }).join('') + '</ul></div>';
+                    }
+                }
                 Swal.fire({
                     icon: 'error',
-                    title: 'Error',
-                    text: data.message || 'Failed to save product'
+                    title: 'Validation failed',
+                    html: errorHtml || msg,
+                    confirmButtonText: 'OK'
                 });
             }
         } catch (error) {
@@ -608,39 +858,38 @@
         }
     });
 
-    // Upload product images
-    async function uploadProductImages(productId, files) {
-        for (let file of Array.from(files)) {
-            if (file.size > 1048576) {
-                continue; // Skip files larger than 1MB
-            }
+    // Generate UUID v4 for image id
+    function uuidv4() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
 
-            // Convert to base64
+    // Upload product images via Laravel proxy to product-image/store (one POST per image)
+    async function uploadProductImages(productId, files) {
+        const url = '{{ route("api.seller.products.image.store") }}';
+        const headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'X-Requested-With': 'XMLHttpRequest'
+        };
+        for (let file of Array.from(files)) {
+            if (file.size > 1048576) continue;
             const base64 = await new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = () => {
                     const base64String = reader.result.split(',')[1];
-                    resolve(base64String);
+                    resolve(base64String || reader.result);
                 };
                 reader.onerror = reject;
                 reader.readAsDataURL(file);
             });
-
+            const body = { id: uuidv4(), product_id: String(productId), image: base64 };
             try {
-                await fetch('{{ route("api.seller.products.image.store") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    credentials: 'same-origin',
-                    body: JSON.stringify({
-                        product_id: productId,
-                        image: base64
-                    })
-                });
+                await fetch(url, { method: 'POST', headers, credentials: 'same-origin', body: JSON.stringify(body) });
             } catch (error) {
                 console.error('Error uploading image:', error);
             }
@@ -657,6 +906,28 @@
             "'": '&#039;'
         };
         return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
+
+    function productImageSliderPrev(btn) {
+        const wrap = btn.closest('.product-image-slider');
+        if (!wrap) return;
+        const slides = wrap.querySelectorAll('.slide');
+        if (slides.length < 2) return;
+        let cur = parseInt(wrap.getAttribute('data-current') || '0', 10);
+        cur = cur <= 0 ? slides.length - 1 : cur - 1;
+        wrap.setAttribute('data-current', String(cur));
+        slides.forEach((s, i) => s.classList.toggle('active', i === cur));
+    }
+
+    function productImageSliderNext(btn) {
+        const wrap = btn.closest('.product-image-slider');
+        if (!wrap) return;
+        const slides = wrap.querySelectorAll('.slide');
+        if (slides.length < 2) return;
+        let cur = parseInt(wrap.getAttribute('data-current') || '0', 10);
+        cur = cur >= slides.length - 1 ? 0 : cur + 1;
+        wrap.setAttribute('data-current', String(cur));
+        slides.forEach((s, i) => s.classList.toggle('active', i === cur));
     }
 
     // Close modal on outside click

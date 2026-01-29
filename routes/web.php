@@ -57,6 +57,7 @@ Route::middleware(['auth.session'])->group(function () {
     Route::post('/api/seller/subcategories/store', [SellerController::class, 'storeSubCategory'])->name('api.seller.subcategories.store');
     Route::post('/api/seller/subcategories/delete', [SellerController::class, 'deleteSubCategory'])->name('api.seller.subcategories.delete');
     Route::get('/api/seller/products', [SellerController::class, 'getProducts'])->name('api.seller.products');
+    Route::post('/api/seller/products/images', [SellerController::class, 'getProductImages'])->name('api.seller.products.images');
     Route::post('/api/seller/products/store', [SellerController::class, 'storeProduct'])->name('api.seller.products.store');
     Route::post('/api/seller/products/image/store', [SellerController::class, 'storeProductImage'])->name('api.seller.products.image.store');
     Route::post('/api/seller/products/delete', [SellerController::class, 'deleteProduct'])->name('api.seller.products.delete');

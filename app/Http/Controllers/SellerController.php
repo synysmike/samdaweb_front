@@ -99,7 +99,7 @@ class SellerController extends Controller
             return redirect()->route('seller.register-shop');
         }
 
-        return view('public.seller.products');
+        return view('public.seller.products', ['shop' => $shop]);
     }
 
     /**
@@ -352,10 +352,13 @@ class SellerController extends Controller
 
         try {
             $data = [
-                'id' => $request->input('id'),
-                'name' => $request->input('name'),
-                'is_active' => $request->input('is_active'),
+                'name' => (string) $request->input('name'),
+                'is_active' => filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN),
             ];
+            $id = $request->input('id');
+            if ($id !== null && $id !== '') {
+                $data['id'] = (string) $id;
+            }
 
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $token,
@@ -448,11 +451,6 @@ class SellerController extends Controller
 
             $apiUrl = config('api.base_url') . config('api.endpoints.product_category.delete');
 
-            Log::info('Calling API to delete category', [
-                'api_url' => $apiUrl,
-                'data' => $data,
-            ]);
-
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $token,
                 'Accept' => 'application/json',
@@ -461,11 +459,6 @@ class SellerController extends Controller
 
             $responseData = $response->json();
             $statusCode = $response->status();
-
-            Log::info('API response received', [
-                'status_code' => $statusCode,
-                'response_data' => $responseData,
-            ]);
 
             if ($response->successful()) {
                 return response()->json($responseData);
@@ -607,11 +600,14 @@ class SellerController extends Controller
 
         try {
             $data = [
-                'id' => $request->input('id'),
-                'name' => $request->input('name'),
-                'category_id' => $request->input('category_id'),
-                'is_active' => $request->input('is_active'),
+                'name' => (string) $request->input('name'),
+                'category_id' => (string) $request->input('category_id'),
+                'is_active' => filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN),
             ];
+            $id = $request->input('id');
+            if ($id !== null && $id !== '') {
+                $data['id'] = (string) $id;
+            }
 
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $token,
@@ -799,6 +795,8 @@ class SellerController extends Controller
 
     /**
      * Store or update a product
+     * API expects: id?, title, description, category_id, sub_category_id, is_active, is_visible,
+     * stock, sku, price, discount_price, country_id, state_id, city_id
      */
     public function storeProduct(Request $request)
     {
@@ -826,7 +824,6 @@ class SellerController extends Controller
             $jsonData = $request->json()->all();
             $request->merge($jsonData);
         } else {
-            // Try to parse JSON from raw content
             $rawContent = $request->getContent();
             if (!empty($rawContent)) {
                 $decoded = json_decode($rawContent, true);
@@ -837,7 +834,27 @@ class SellerController extends Controller
         }
 
         try {
-            $data = $request->all();
+            $id = $request->input('id');
+            $id = ($id === '' || $id === null) ? null : (string) $id;
+
+            $data = [
+                'title' => (string) ($request->input('title') ?? ''),
+                'description' => (string) ($request->input('description') ?? ''),
+                'category_id' => (string) ($request->input('category_id') ?? ''),
+                'sub_category_id' => (string) ($request->input('sub_category_id') ?? ''),
+                'is_active' => filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN),
+                'is_visible' => filter_var($request->input('is_visible'), FILTER_VALIDATE_BOOLEAN),
+                'stock' => (int) ($request->input('stock') ?? 0),
+                'sku' => (string) ($request->input('sku') ?? ''),
+                'price' => (float) ($request->input('price') ?? 0),
+                'discount_price' => (float) ($request->input('discount_price') ?? 0),
+                'country_id' => (int) ($request->input('country_id') ?? 0),
+                'state_id' => (int) ($request->input('state_id') ?? 0),
+                'city_id' => (int) ($request->input('city_id') ?? 0),
+            ];
+            if ($id !== null) {
+                $data['id'] = $id;
+            }
 
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $token,
@@ -851,7 +868,6 @@ class SellerController extends Controller
                 return response()->json($responseData);
             }
 
-            // Return more detailed error information
             return response()->json([
                 'success' => false,
                 'status' => 'error',
@@ -946,7 +962,81 @@ class SellerController extends Controller
     }
 
     /**
-     * Delete a product (prepared for future endpoint)
+     * Get product images (POST /api/v1/product-image/get with { product_id })
+     */
+    public function getProductImages(Request $request)
+    {
+        if (!session()->isStarted()) {
+            session()->start();
+        }
+
+        $token = session('sanctum_token');
+        if (!$token) {
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Authentication token not found. Please login again.'
+            ], 401);
+        }
+
+        $jsonData = [];
+        if ($request->isJson() || $request->header('Content-Type') === 'application/json') {
+            $jsonData = $request->json()->all();
+        } else {
+            $raw = $request->getContent();
+            if (!empty($raw)) {
+                $decoded = json_decode($raw, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $jsonData = $decoded;
+                }
+            }
+        }
+
+        $productId = $jsonData['product_id'] ?? null;
+        if ($productId === null || $productId === '') {
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'product_id is required.'
+            ], 422);
+        }
+
+        try {
+            $apiUrl = config('api.base_url') . config('api.endpoints.product_image.index');
+            $body = ['product_id' => (string) $productId];
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ])->post($apiUrl, $body);
+
+            $responseData = $response->json();
+            $statusCode = $response->status();
+
+            if ($response->successful()) {
+                return response()->json($responseData);
+            }
+
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => $responseData['message'] ?? 'Failed to fetch product images',
+                'data' => $responseData,
+                'api_status' => $statusCode
+            ], $statusCode);
+        } catch (\Exception $e) {
+            Log::error('Error fetching product images: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Error fetching product images: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a product (POST /api/v1/product/delete with { id })
      */
     public function deleteProduct(Request $request)
     {
@@ -994,11 +1084,6 @@ class SellerController extends Controller
 
             $apiUrl = config('api.base_url') . config('api.endpoints.product.delete');
 
-            Log::info('Calling API to delete product (endpoint may not be ready)', [
-                'api_url' => $apiUrl,
-                'data' => $data,
-            ]);
-
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $token,
                 'Accept' => 'application/json',
@@ -1016,7 +1101,7 @@ class SellerController extends Controller
             return response()->json([
                 'success' => false,
                 'status' => 'error',
-                'message' => $responseData['message'] ?? 'Failed to delete product. Endpoint may not be ready yet.',
+                'message' => $responseData['message'] ?? 'Failed to delete product.',
                 'data' => $responseData,
                 'api_status' => $statusCode
             ], $statusCode);

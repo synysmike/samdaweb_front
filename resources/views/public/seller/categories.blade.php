@@ -238,9 +238,15 @@
             }
 
             if (result.status === 'success' || result.success) {
-                categories = result.data || [];
+                const raw = result.data || result.categories || [];
+                categories = raw.map(c => ({
+                    id: String(c.id ?? c.categoryId ?? ''),
+                    name: c.name ?? '',
+                    created_at: c.created_at,
+                    updated_at: c.updated_at,
+                    is_active: c.is_active
+                }));
                 renderCategories();
-                // Reload subcategories to update category names
                 loadSubCategories();
             } else {
                 Swal.fire({
@@ -310,7 +316,7 @@
         document.getElementById('modalTitle').textContent = 'Add Category';
         document.getElementById('categoryForm').reset();
         document.getElementById('categoryId').value = '';
-        document.querySelector('input[name="is_active"][value="1"]').checked = true;
+        document.querySelector('#categoryForm input[name="is_active"][value="1"]').checked = true;
         document.getElementById('categoryModal').classList.remove('hidden');
     }
 
@@ -323,7 +329,7 @@
 
     // Edit category
     function editCategory(id) {
-        const category = categories.find(cat => cat.id === id);
+        const category = categories.find(cat => String(cat.id) === String(id));
         if (!category) {
             Swal.fire({
                 icon: 'error',
@@ -338,7 +344,7 @@
         document.getElementById('categoryName').value = category.name || '';
         
         const isActive = category.is_active === true || category.is_active === '1' || category.is_active === 1;
-        document.querySelector(`input[name="is_active"][value="${isActive ? '1' : '0'}"]`).checked = true;
+        document.querySelector(`#categoryForm input[name="is_active"][value="${isActive ? '1' : '0'}"]`).checked = true;
         
         document.getElementById('categoryModal').classList.remove('hidden');
     }
@@ -427,7 +433,7 @@
         const formData = {
             id: document.getElementById('categoryId').value || null,
             name: document.getElementById('categoryName').value.trim(),
-            is_active: document.querySelector('input[name="is_active"]:checked').value === '1'
+            is_active: document.querySelector('#categoryForm input[name="is_active"]:checked').value === '1'
         };
 
         if (!formData.name) {
@@ -531,7 +537,15 @@
             }
 
             if (result.status === 'success' || result.success) {
-                subcategories = result.data || [];
+                const raw = result.data || result.subcategories || [];
+                subcategories = raw.map(s => ({
+                    id: String(s.id ?? s.subcategoryId ?? ''),
+                    name: s.name ?? '',
+                    category_id: String(s.category_id ?? s.categoryId ?? ''),
+                    created_at: s.created_at,
+                    updated_at: s.updated_at,
+                    is_active: s.is_active
+                }));
                 renderSubCategories();
             } else {
                 Swal.fire({
@@ -575,8 +589,7 @@
             const updatedDate = subcategory.updated_at ? new Date(subcategory.updated_at).toLocaleDateString() : 'N/A';
             const isActive = subcategory.is_active === true || subcategory.is_active === '1' || subcategory.is_active === 1;
             
-            // Find category name
-            const category = categories.find(cat => cat.id === subcategory.category_id);
+            const category = categories.find(cat => String(cat.id) === String(subcategory.category_id ?? subcategory.categoryId ?? ''));
             const categoryName = category ? category.name : 'Unknown';
             
             return `
@@ -632,7 +645,7 @@
 
     // Edit subcategory
     function editSubCategory(id) {
-        const subcategory = subcategories.find(sub => sub.id === id);
+        const subcategory = subcategories.find(sub => String(sub.id) === String(id));
         if (!subcategory) {
             Swal.fire({
                 icon: 'error',
@@ -649,13 +662,12 @@
         // Populate category dropdown
         const categorySelect = document.getElementById('subCategoryCategoryId');
         categorySelect.innerHTML = '<option value="">Select a category</option>';
+        const subCatId = String(subcategory.category_id ?? subcategory.categoryId ?? '');
         categories.forEach(category => {
             const option = document.createElement('option');
             option.value = category.id;
             option.textContent = category.name;
-            if (category.id === subcategory.category_id) {
-                option.selected = true;
-            }
+            if (String(category.id) === subCatId) option.selected = true;
             categorySelect.appendChild(option);
         });
         
