@@ -5,6 +5,9 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<!-- Quill WYSIWYG -->
+<link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.js"></script>
 <style>
     .select2-container--default .select2-selection--single { height: 42px; border: 1px solid #d1d5db; border-radius: 0.5rem; }
     .select2-container--default .select2-selection--single .select2-selection__rendered { line-height: 42px; padding-left: 16px; }
@@ -18,6 +21,15 @@
     .product-image-slider .slider-btn:hover { opacity: 1; background: rgba(0,0,0,0.7); }
     .product-image-slider .slider-prev { left: 2px; }
     .product-image-slider .slider-next { right: 2px; }
+    #productDescriptionEditor { min-height: 120px; }
+    .ql-toolbar.ql-snow, .ql-container.ql-snow { border-color: #d1d5db; border-radius: 0.5rem; }
+    .ql-toolbar.ql-snow { border-bottom: 0; border-radius: 0.5rem 0.5rem 0 0; }
+    .ql-container.ql-snow { border-radius: 0 0 0.5rem 0.5rem; }
+    .ql-emoji-btn { padding: 2px 6px; cursor: pointer; font-size: 1.1em; line-height: 1; border: none; background: transparent; }
+    .ql-emoji-btn:hover { background: rgba(0,0,0,0.06); border-radius: 2px; }
+    .ql-emoji-picker { position: fixed; z-index: 9999; background: #fff; border: 1px solid #d1d5db; border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 8px; max-height: 180px; overflow-y: auto; display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+    .ql-emoji-picker span { cursor: pointer; padding: 4px; font-size: 1.25em; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+    .ql-emoji-picker span:hover { background: #f3f4f6; }
 </style>
 
 <div class="space-y-6">
@@ -103,10 +115,9 @@
             </div>
 
             <div>
-                <label for="productDescription" class="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                <textarea id="productDescription" name="description" rows="4"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter product description"></textarea>
+                <label for="productDescriptionEditor" class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <input type="hidden" id="productDescription" name="description" value="">
+                <div id="productDescriptionEditor" class="bg-white"></div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -261,8 +272,69 @@
     @endphp
     const shopLocation = @json($shopLocationData);
 
-    // Load data on page load (await cat/subcat so dropdowns are ready when modal opens)
+    let productDescriptionQuill = null;
+
+    const EMOJI_LIST = ['😀','😃','😄','😁','😅','😂','🤣','😊','😇','🙂','😉','😍','🥰','😘','😋','😜','🤔','🤨','😐','😑','😶','👍','👎','👏','🙌','👋','🤝','✌️','🤞','🤟','❤️','🧡','💛','💚','💙','💜','🖤','⭐','🌟','✨','🔥','💯','✅','❌','⚠️','📦','🛒','💰','🎉','🏷️'];
+
     document.addEventListener('DOMContentLoaded', async function() {
+        productDescriptionQuill = new Quill('#productDescriptionEditor', {
+            theme: 'snow',
+            placeholder: 'Enter product description',
+            modules: {
+                toolbar: [
+                    ['bold', 'italic', 'underline'],
+                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                    ['link'],
+                    ['clean']
+                ]
+            }
+        });
+        const qlToolbar = document.querySelector('.ql-toolbar.ql-snow');
+        if (qlToolbar) {
+            const emojiGroup = document.createElement('span');
+            emojiGroup.className = 'ql-formats';
+            const emojiBtn = document.createElement('button');
+            emojiBtn.type = 'button';
+            emojiBtn.className = 'ql-emoji-btn';
+            emojiBtn.innerHTML = '😀';
+            emojiBtn.title = 'Insert emoji';
+            emojiBtn.setAttribute('aria-label', 'Insert emoji');
+            emojiGroup.appendChild(emojiBtn);
+            qlToolbar.appendChild(emojiGroup);
+            emojiBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const picker = document.getElementById('quillEmojiPicker');
+                if (picker) { picker.remove(); return; }
+                const p = document.createElement('div');
+                p.id = 'quillEmojiPicker';
+                p.className = 'ql-emoji-picker';
+                const rect = emojiBtn.getBoundingClientRect();
+                p.style.top = (rect.bottom + 4) + 'px';
+                p.style.left = rect.left + 'px';
+                EMOJI_LIST.forEach(function(emoji) {
+                    const s = document.createElement('span');
+                    s.textContent = emoji;
+                    s.addEventListener('click', function(ev) {
+                        ev.stopPropagation();
+                        const q = productDescriptionQuill;
+                        const range = q.getSelection(true) || { index: q.getLength() };
+                        q.insertText(range.index, emoji, 'user');
+                        q.setSelection(range.index + emoji.length);
+                        p.remove();
+                        document.removeEventListener('click', close);
+                    });
+                    p.appendChild(s);
+                });
+                document.body.appendChild(p);
+                function close() { document.getElementById('quillEmojiPicker')?.remove(); document.removeEventListener('click', close); }
+                setTimeout(function() { document.addEventListener('click', close); }, 10);
+            });
+        }
+        productDescriptionQuill.on('text-change', function() {
+            document.getElementById('productDescription').value = productDescriptionQuill.root.innerHTML;
+        });
+
         await loadCategories();
         await loadSubCategories();
         loadProducts();
@@ -481,6 +553,7 @@
         document.getElementById('productSlug').value = '';
         document.getElementById('productCreatedAt').value = '';
         document.getElementById('productUpdatedAt').value = '';
+        if (productDescriptionQuill) { productDescriptionQuill.root.innerHTML = ''; document.getElementById('productDescription').value = ''; }
         document.getElementById('imagePreview').innerHTML = '';
         document.getElementById('existingImagesPreview').classList.add('hidden');
         document.getElementById('existingImagesGrid').innerHTML = '';
@@ -501,6 +574,7 @@
         document.getElementById('productSlug').value = '';
         document.getElementById('productCreatedAt').value = '';
         document.getElementById('productUpdatedAt').value = '';
+        if (productDescriptionQuill) { productDescriptionQuill.root.innerHTML = ''; document.getElementById('productDescription').value = ''; }
         document.getElementById('imagePreview').innerHTML = '';
         document.getElementById('existingImagesPreview').classList.add('hidden');
         document.getElementById('existingImagesGrid').innerHTML = '';
@@ -607,7 +681,7 @@
         document.getElementById('productShopId').value = product.shop_id || shopId;
         document.getElementById('productTitle').value = product.title || product.name || '';
         document.getElementById('productSlug').value = product.slug || '';
-        document.getElementById('productDescription').value = product.description || '';
+        if (productDescriptionQuill) { productDescriptionQuill.root.innerHTML = product.description || ''; document.getElementById('productDescription').value = product.description || ''; }
         document.getElementById('productSku').value = product.sku || '';
         document.getElementById('productPrice').value = product.price ?? '';
         document.getElementById('productDiscountPrice').value = product.discount_price ?? '';
@@ -749,10 +823,11 @@
         const stateIdRaw = document.getElementById('productStateId').value;
         const cityIdRaw = document.getElementById('productCityId').value;
 
+        if (productDescriptionQuill) document.getElementById('productDescription').value = productDescriptionQuill.root.innerHTML;
         const productIdVal = document.getElementById('productId').value.trim() || null;
         const formData = {
             title: titleVal || '',
-            description: document.getElementById('productDescription').value.trim() || '',
+            description: (document.getElementById('productDescription').value || '').trim() || '',
             category_id: document.getElementById('productCategoryId').value || '',
             sub_category_id: document.getElementById('productSubCategoryId').value || '',
             is_active: document.querySelector('input[name="is_active"]:checked').value === '1',
