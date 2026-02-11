@@ -44,7 +44,7 @@
         <div class="p-6">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-semibold text-gray-800">Product List</h2>
-                <button onclick="openProductModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                <button id="openProductModalBtn" type="button" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
                     + Add Product
                 </button>
             </div>
@@ -57,15 +57,14 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price Range</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="productsTableBody" class="bg-white divide-y divide-gray-200">
                         <tr>
-                            <td colspan="7" class="px-6 py-8 text-center text-gray-500">
+                            <td colspan="6" class="px-6 py-8 text-center text-gray-500">
                                 <div class="flex flex-col items-center">
                                     <svg class="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
@@ -139,26 +138,20 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label for="productPrice" class="block text-sm font-medium text-gray-700 mb-2">Price <span class="text-red-500">*</span></label>
-                    <input type="text" id="productPrice" name="price" required
+                    <label for="productMinPrice" class="block text-sm font-medium text-gray-700 mb-2">Min Price <span class="text-red-500">*</span></label>
+                    <input type="number" id="productMinPrice" name="min_price" required min="0" step="1"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="0.00">
+                        placeholder="0">
                 </div>
                 <div>
-                    <label for="productDiscountPrice" class="block text-sm font-medium text-gray-700 mb-2">Discount Price</label>
-                    <input type="text" id="productDiscountPrice" name="discount_price"
+                    <label for="productMaxPrice" class="block text-sm font-medium text-gray-700 mb-2">Max Price <span class="text-red-500">*</span></label>
+                    <input type="number" id="productMaxPrice" name="max_price" required min="0" step="1"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="0.00 or leave empty">
+                        placeholder="0">
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label for="productStock" class="block text-sm font-medium text-gray-700 mb-2">Stock</label>
-                    <input type="text" id="productStock" name="stock"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="0">
-                </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Is Active</label>
                     <div class="flex items-center space-x-4">
@@ -327,7 +320,11 @@
                     p.appendChild(s);
                 });
                 document.body.appendChild(p);
-                function close() { document.getElementById('quillEmojiPicker')?.remove(); document.removeEventListener('click', close); }
+                function close() {
+                    const picker = document.getElementById('quillEmojiPicker');
+                    if (picker) picker.remove();
+                    document.removeEventListener('click', close);
+                }
                 setTimeout(function() { document.addEventListener('click', close); }, 10);
             });
         }
@@ -336,16 +333,21 @@
         });
 
         await loadCategories();
-        await loadSubCategories();
         loadProducts();
         applyShopLocationToProductForm();
+
+        const addProductBtn = document.getElementById('openProductModalBtn');
+        if (addProductBtn) {
+            addProductBtn.addEventListener('click', openProductModal);
+        }
+
         document.getElementById('productTitle').addEventListener('blur', function() {
             const slug = (this.value || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
             document.getElementById('productSlug').value = slug;
         });
     });
 
-    // Load categories
+    // Load categories (unified API returns all with parent_id; root = categories, children = subcategories)
     async function loadCategories() {
         try {
             const response = await fetch('{{ route("api.seller.categories") }}', {
@@ -360,38 +362,29 @@
 
             const result = await response.json();
             if (result.status === 'success' || result.success) {
-                const raw = result.data || result.categories || [];
-                categories = raw.map(c => ({ id: String(c.id ?? c.categoryId ?? ''), name: c.name ?? '' }));
-            }
-        } catch (error) {
-            console.error('Error loading categories:', error);
-        }
-    }
-
-    // Load subcategories
-    async function loadSubCategories() {
-        try {
-            const response = await fetch('{{ route("api.seller.subcategories") }}', {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                credentials: 'same-origin'
-            });
-
-            const result = await response.json();
-            if (result.status === 'success' || result.success) {
-                const raw = result.data || result.subcategories || [];
-                subcategories = raw.map(s => ({
+                let raw = result.data ?? result.categories ?? [];
+                if (typeof raw === 'string') {
+                    try { raw = JSON.parse(raw) || []; } catch (_) { raw = []; }
+                }
+                const arr = Array.isArray(raw) ? raw : [];
+                // Split API response: no parent_id → category; has parent_id → subcategory
+                const roots = arr.filter(c => {
+                    const pid = c.parent_id ?? c.parentId ?? null;
+                    return pid == null || pid === '';
+                });
+                const children = arr.filter(c => {
+                    const pid = c.parent_id ?? c.parentId ?? null;
+                    return pid != null && String(pid).trim() !== '';
+                });
+                categories = roots.map(c => ({ id: String(c.id ?? c.categoryId ?? ''), name: c.name ?? '' }));
+                subcategories = children.map(s => ({
                     id: String(s.id ?? s.subcategoryId ?? ''),
                     name: s.name ?? '',
-                    category_id: String(s.category_id ?? s.categoryId ?? '')
+                    category_id: String(s.parent_id ?? s.category_id ?? s.categoryId ?? '')
                 }));
             }
         } catch (error) {
-            console.error('Error loading subcategories:', error);
+            console.error('Error loading categories:', error);
         }
     }
 
@@ -486,7 +479,7 @@
         if (products.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="px-6 py-8 text-center text-gray-500">
+                    <td colspan="6" class="px-6 py-8 text-center text-gray-500">
                         <div class="flex flex-col items-center">
                             <svg class="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
@@ -525,10 +518,7 @@
                         <div class="text-sm text-gray-500">${escapeHtml(categoryName)}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-medium text-gray-900">$${parseFloat(product.price || 0).toFixed(2)}</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-500">${product.stock || 0}</div>
+                        <div class="text-sm font-medium text-gray-900">$${parseFloat(((product.min_price != null ? product.min_price : product.price) || 0)).toFixed(2)} - $${parseFloat(((product.max_price != null ? product.max_price : product.price) || 0)).toFixed(2)}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <span class="px-2 py-1 text-xs font-semibold rounded-full ${isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
@@ -544,8 +534,8 @@
         }).join('');
     }
 
-    // Open product modal for add
-    function openProductModal() {
+    // Open product modal for add (expose globally for onclick)
+    window.openProductModal = function openProductModal() {
         document.getElementById('productModalTitle').textContent = 'Add Product';
         document.getElementById('productForm').reset();
         document.getElementById('productId').value = '';
@@ -560,13 +550,15 @@
         document.getElementById('productImages').value = '';
         document.querySelector('input[name="is_active"][value="1"]').checked = true;
         document.querySelector('input[name="is_visible"][value="1"]').checked = true;
+        document.getElementById('productMinPrice').value = '0';
+        document.getElementById('productMaxPrice').value = '0';
         populateCategoryDropdown();
         applyShopLocationToProductForm();
         document.getElementById('productModal').classList.remove('hidden');
     }
 
-    // Close product modal
-    function closeProductModal() {
+    // Close product modal (expose globally for onclick)
+    window.closeProductModal = function closeProductModal() {
         document.getElementById('productModal').classList.add('hidden');
         document.getElementById('productForm').reset();
         document.getElementById('productId').value = '';
@@ -669,7 +661,7 @@
     });
 
     // Edit product
-    async function editProduct(id) {
+    window.editProduct = async function editProduct(id) {
         const product = products.find(p => p.id === id);
         if (!product) {
             Swal.fire({ icon: 'error', title: 'Error', text: 'Product not found' });
@@ -683,9 +675,8 @@
         document.getElementById('productSlug').value = product.slug || '';
         if (productDescriptionQuill) { productDescriptionQuill.root.innerHTML = product.description || ''; document.getElementById('productDescription').value = product.description || ''; }
         document.getElementById('productSku').value = product.sku || '';
-        document.getElementById('productPrice').value = product.price ?? '';
-        document.getElementById('productDiscountPrice').value = product.discount_price ?? '';
-        document.getElementById('productStock').value = product.stock ?? '';
+        document.getElementById('productMinPrice').value = (product.min_price != null ? product.min_price : (product.price || 0));
+        document.getElementById('productMaxPrice').value = (product.max_price != null ? product.max_price : (product.discount_price != null ? product.discount_price : (product.price || 0)));
         document.getElementById('productCreatedAt').value = product.created_at || '';
         document.getElementById('productUpdatedAt').value = product.updated_at || '';
         document.getElementById('productCountryName').value = product.country_name || '';
@@ -693,8 +684,21 @@
         document.getElementById('productCityName').value = product.city_name || '';
 
         populateCategoryDropdown();
-        const catId = product.category_id ?? product.categoryId ?? '';
-        const subId = product.sub_category_id ?? product.subCategoryId ?? '';
+        const productCatId = String(product.category_id ?? product.categoryId ?? '');
+        const sub = subcategories.find(s => String(s.id) === productCatId);
+        const cat = categories.find(c => String(c.id) === productCatId);
+        let catId = '';
+        let subId = '';
+        if (sub) {
+            catId = String(sub.category_id ?? '');
+            subId = productCatId;
+        } else if (cat) {
+            catId = productCatId;
+            subId = '';
+        } else {
+            catId = productCatId;
+            subId = String(product.sub_category_id ?? product.subCategoryId ?? '');
+        }
         document.getElementById('productCategoryId').value = catId;
         populateSubcategoryDropdown(catId);
         document.getElementById('productSubCategoryId').value = subId;
@@ -733,7 +737,7 @@
     }
 
     // Delete product
-    async function deleteProduct(id, name) {
+    window.deleteProduct = async function deleteProduct(id, name) {
         const result = await Swal.fire({
             title: 'Delete Product?',
             text: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
@@ -762,7 +766,7 @@
                 const data = await response.json();
 
                 if (response.status === 401) {
-                    const errorMsg = data.message || data.data?.message || 'Your session has expired. Please login again.';
+                    const errorMsg = data.message || (data.data && data.data.message) || 'Your session has expired. Please login again.';
                     Swal.fire({
                         icon: 'error',
                         title: 'Unauthorized',
@@ -789,7 +793,7 @@
                     });
                     loadProducts();
                 } else {
-                    const errorMsg = data.message || data.data?.message || 'Failed to delete product.';
+                    const errorMsg = data.message || (data.data && data.data.message) || 'Failed to delete product.';
                     Swal.fire({
                         icon: 'error',
                         title: 'Delete failed',
@@ -825,20 +829,19 @@
 
         if (productDescriptionQuill) document.getElementById('productDescription').value = productDescriptionQuill.root.innerHTML;
         const productIdVal = document.getElementById('productId').value.trim() || null;
+        const subCatId = document.getElementById('productSubCategoryId').value.trim();
+        const catId = document.getElementById('productCategoryId').value.trim();
         const formData = {
             title: titleVal || '',
             description: (document.getElementById('productDescription').value || '').trim() || '',
-            category_id: document.getElementById('productCategoryId').value || '',
-            sub_category_id: document.getElementById('productSubCategoryId').value || '',
+            category_id: subCatId || catId || '',
             is_active: document.querySelector('input[name="is_active"]:checked').value === '1',
             is_visible: document.querySelector('input[name="is_visible"]:checked').value === '1',
-            stock: parseInt(document.getElementById('productStock').value.trim() || '0', 10) || 0,
-            sku: document.getElementById('productSku').value.trim() || '',
-            price: parseFloat(document.getElementById('productPrice').value.trim() || '0') || 0,
-            discount_price: parseFloat(document.getElementById('productDiscountPrice').value.trim() || '0') || 0,
             country_id: countryIdRaw ? parseInt(countryIdRaw, 10) : 0,
             state_id: stateIdRaw ? parseInt(stateIdRaw, 10) : 0,
-            city_id: cityIdRaw ? parseInt(cityIdRaw, 10) : 0
+            city_id: cityIdRaw ? parseInt(cityIdRaw, 10) : 0,
+            min_price: parseInt(document.getElementById('productMinPrice').value.trim() || '0', 10) || 0,
+            max_price: parseInt(document.getElementById('productMaxPrice').value.trim() || '0', 10) || 0
         };
         if (productIdVal) formData.id = productIdVal;
 
@@ -883,7 +886,7 @@
             }
 
             if (data.success || data.status === 'success' || response.ok) {
-                const productId = data.data?.id || formData.id;
+                const productId = (data.data && data.data.id) || formData.id;
                 
                 // Handle image uploads if any
                 const imageInput = document.getElementById('productImages');
@@ -983,7 +986,7 @@
         return String(text).replace(/[&<>"']/g, m => map[m]);
     }
 
-    function productImageSliderPrev(btn) {
+    window.productImageSliderPrev = function productImageSliderPrev(btn) {
         const wrap = btn.closest('.product-image-slider');
         if (!wrap) return;
         const slides = wrap.querySelectorAll('.slide');
@@ -994,7 +997,7 @@
         slides.forEach((s, i) => s.classList.toggle('active', i === cur));
     }
 
-    function productImageSliderNext(btn) {
+    window.productImageSliderNext = function productImageSliderNext(btn) {
         const wrap = btn.closest('.product-image-slider');
         if (!wrap) return;
         const slides = wrap.querySelectorAll('.slide');

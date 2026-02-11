@@ -128,21 +128,34 @@
                 'X-Requested-With': 'XMLHttpRequest'
             };
 
-            const [categoriesRes, subcategoriesRes, productsRes] = await Promise.all([
+            const [categoriesRes, productsRes] = await Promise.all([
                 fetch('{{ route("api.seller.categories") }}', { method: 'GET', headers, credentials: 'same-origin' }),
-                fetch('{{ route("api.seller.subcategories") }}', { method: 'GET', headers, credentials: 'same-origin' }),
                 fetch('{{ route("api.seller.products") }}', { method: 'GET', headers, credentials: 'same-origin' })
             ]);
 
             if (categoriesRes.ok) {
                 const d = await categoriesRes.json();
-                const list = (d.success || d.status === 'success') ? (d.data || []) : [];
-                document.getElementById('totalCategories').textContent = list.length;
-            }
-            if (subcategoriesRes.ok) {
-                const d = await subcategoriesRes.json();
-                const list = (d.success || d.status === 'success') ? (d.data || []) : [];
-                document.getElementById('totalSubCategories').textContent = list.length;
+                // d.data may be array or JSON string; normalize to array
+                let list = (d.success || d.status === 'success') ? (d.data || []) : [];
+                if (typeof list === 'string') {
+                    try { list = JSON.parse(list) || []; } catch (_) { list = []; }
+                }
+                const arr = Array.isArray(list) ? list : [];
+                // Split: no parent_id → category; has parent_id → subcategory
+                const roots = arr.filter(c => {
+                    const pid = (c.parent_id !== undefined && c.parent_id !== null)
+                        ? c.parent_id
+                        : (c.parentId !== undefined && c.parentId !== null ? c.parentId : null);
+                    return pid == null || pid === '';
+                });
+                const children = arr.filter(c => {
+                    const pid = (c.parent_id !== undefined && c.parent_id !== null)
+                        ? c.parent_id
+                        : (c.parentId !== undefined && c.parentId !== null ? c.parentId : null);
+                    return pid != null && String(pid).trim() !== '';
+                });
+                document.getElementById('totalCategories').textContent = roots.length;
+                document.getElementById('totalSubCategories').textContent = children.length;
             }
             if (productsRes.ok) {
                 const d = await productsRes.json();
@@ -176,8 +189,7 @@
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price Range</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Action</th>
                     </tr>
@@ -185,13 +197,15 @@
                 <tbody class="bg-white divide-y divide-gray-200">
                     ${recent.map(p => {
                         const title = escapeHtml(p.title || p.name || 'Untitled');
-                        const price = parseFloat(p.price || 0).toFixed(2);
-                        const stock = p.stock ?? 0;
+                        const minRaw = (p.min_price != null ? p.min_price : p.price);
+                        const maxRaw = (p.max_price != null ? p.max_price : p.price);
+                        const minP = parseFloat(minRaw || 0).toFixed(2);
+                        const maxP = parseFloat(maxRaw || 0).toFixed(2);
+                        const priceRange = minP === maxP ? `$${minP}` : `$${minP} - $${maxP}`;
                         const isActive = p.is_active === true || p.is_active === '1' || p.is_active === 1;
                         return `<tr class="hover:bg-gray-50">
                             <td class="px-4 py-3 text-sm font-medium text-gray-900">${title}</td>
-                            <td class="px-4 py-3 text-sm text-gray-600">$${price}</td>
-                            <td class="px-4 py-3 text-sm text-gray-600">${stock}</td>
+                            <td class="px-4 py-3 text-sm text-gray-600">${priceRange}</td>
                             <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs font-medium rounded-full ${isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${isActive ? 'Active' : 'Inactive'}</span></td>
                             <td class="px-4 py-3 text-right"><a href="{{ route('seller.products') }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View</a></td>
                         </tr>`;

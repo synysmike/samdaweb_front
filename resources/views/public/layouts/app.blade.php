@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>My Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,13 +12,21 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         [x-cloak] { display: none !important; }
+        /* Hide scrollbar for category nav overflow, keep scroll functionality */
+        .nav-scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .nav-scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
     </style>
 </head>
 
 <body class="min-h-screen bg-white overflow-x-hidden flex flex-col">
 
     <!-- Header -->
-    <header class="shadow-md theme-navbar" x-data="{ open: false, userDropdownOpen: false }" style="background-color: #8b5cf6;">
+    <header class="shadow-md theme-navbar bg-white text-gray-900" x-data="{ open: false, userDropdownOpen: false }">
         @php
             // Force session to start and read
             if (!session()->isStarted()) {
@@ -74,93 +83,120 @@
             }
         @endphp
         
-        <div class="container mx-auto flex justify-between items-center py-4 px-6 gap-4">
-            <!-- Logo and Search -->
-            <div class="flex items-center gap-4 flex-1 md:flex-initial">
-                <!-- Logo -->
-                <a href="/" class="text-2xl font-bold whitespace-nowrap" id="app-logo" style="color: #3b82f6;">MyShop</a>
-
-                <!-- Search Field -->
-                <form action="/products" method="GET" class="hidden md:flex flex-1 max-w-md">
-                    <div class="relative w-full">
-                        <input type="text" name="q" placeholder="Search products..." value="{{ request('q') }}"
-                               class="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[color:var(--primary-color)] focus:border-transparent">
-                        <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:[style-color:var(--primary-color)]">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                            </svg>
-                        </button>
+        <!-- Top row: Search (left) | Logo (center) | Cart + Account (right) -->
+        <div class="container mx-auto px-4 sm:px-6 py-3 sm:py-4">
+            <div class="hidden md:grid md:grid-cols-3 md:items-center md:gap-2 lg:gap-4">
+                <!-- Left: Search -->
+                <form action="/products" method="GET" class="flex items-center">
+                    <div class="relative w-full max-w-[140px] sm:max-w-[180px] lg:max-w-xs">
+                        <svg class="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        <input type="text" name="q" placeholder="Search" value="{{ request('q') }}"
+                               class="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-1.5 sm:py-2 text-sm sm:text-base border-b border-gray-300 bg-transparent focus:outline-none focus:border-blue-600 text-gray-900 placeholder-gray-500">
                     </div>
                 </form>
-            </div>
 
-            @if($isLoggedIn)
-                <!-- Desktop Nav - Logged In -->
-                <nav class="hidden md:flex space-x-6">
-                    <a href="/" class="hover:[style-color:var(--primary-color)]">Home</a>
-                    <a href="/products" class="hover:[style-color:var(--primary-color)]">Products</a>
-                    <a href="/cart" class="hover:[style-color:var(--primary-color)]">🛒 Cart</a>
-                </nav>
+                <!-- Center: Logo -->
+                <div class="flex justify-center">
+                    <a href="/" class="flex items-center gap-1.5 sm:gap-2">
+                        <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                            <span class="text-white font-bold text-sm sm:text-lg">{{ substr(config('app.name', 'MyShop'), 0, 1) }}</span>
+                        </div>
+                        <span class="text-lg sm:text-xl font-bold text-gray-900" id="app-logo">MyShop</span>
+                    </a>
+                </div>
 
-                <!-- User Dropdown - Desktop -->
-                <div class="hidden md:flex items-center space-x-4">
-                    <div class="relative" x-data="{ open: false }">
-                        <button @click="open = !open" class="flex items-center space-x-2 focus:outline-none">
-                            <div class="w-10 h-10 rounded-full bg-gray-300 overflow-hidden border-2 [border-color:var(--primary-color)]">
-                                @if($userImage)
-                                    <img src="{{ $userImage }}" alt="{{ $userName }}" class="w-full h-full object-cover">
-                                @else
-                                    <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-[var(--primary-color)] to-[var(--secondary-color)] text-white font-semibold">
-                                        {{ strtoupper(substr($userName, 0, 1)) }}
-                                    </div>
-                                @endif
-                            </div>
-                            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <!-- Right: Cart + Account -->
+                <div class="flex items-center justify-end gap-3 sm:gap-4 lg:gap-6">
+                    @if($isLoggedIn)
+                        <!-- Cart -->
+                        <a href="/cart" class="flex items-center gap-1 sm:gap-1.5 text-gray-700 hover:text-blue-600 transition-colors relative" title="Cart">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            <span class="text-xs sm:text-sm font-medium hidden lg:inline">$0.00</span>
+                            <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                             </svg>
-                        </button>
-                        
-                        <!-- Dropdown Menu -->
-                        <div x-show="open" 
-                             @click.away="open = false"
-                             x-cloak
-                             x-transition
-                             class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                            <div class="px-4 py-2 border-b border-gray-200">
-                                <p class="text-sm font-semibold text-gray-900">{{ $userName }}</p>
-                                <p class="text-xs text-gray-500 truncate">{{ $userEmail }}</p>
+                        </a>
+
+                        <!-- Account dropdown -->
+                        <div class="relative" x-data="{ accountOpen: false }">
+                            <button @click="accountOpen = !accountOpen" class="flex items-center gap-1 sm:gap-1.5 text-gray-700 hover:text-blue-600 transition-colors focus:outline-none" title="Account">
+                                <svg class="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                                <span class="text-xs sm:text-sm font-medium hidden lg:inline">Account</span>
+                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div x-show="accountOpen" @click.away="accountOpen = false" x-cloak x-transition
+                                 class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                                <div class="px-4 py-2 border-b border-gray-200">
+                                    <p class="text-sm font-semibold text-gray-900">{{ $userName }}</p>
+                                    <p class="text-xs text-gray-500 truncate">{{ $userEmail }}</p>
+                                </div>
+                                <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                                <a href="/orders" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Orders</a>
+                                <a href="/seller" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Seller Page</a>
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Logout</button>
+                                </form>
                             </div>
-                            <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
-                            <a href="/orders" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Orders</a>
-                            <a href="/seller" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Seller Page</a>
-                            <form method="POST" action="{{ route('logout') }}">
-                                @csrf
-                                <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
-                                    Logout
-                                </button>
-                            </form>
                         </div>
+                    @else
+                        <a href="{{ route('login') }}" class="flex items-center gap-1 sm:gap-1.5 text-gray-700 hover:text-blue-600 transition-colors" title="Account">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            <span class="text-xs sm:text-sm font-medium hidden lg:inline">Account</span>
+                            <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </a>
+                        <a href="{{ route('login') }}" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-xs sm:text-sm whitespace-nowrap">Login</a>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Mobile: Logo + search/cart + hamburger -->
+            <div class="md:hidden flex justify-between items-center gap-2">
+                <a href="/" class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 min-w-0">
+                    <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                        <span class="text-white font-bold text-sm sm:text-base">{{ substr(config('app.name', 'MyShop'), 0, 1) }}</span>
                     </div>
+                    <span class="text-base sm:text-lg font-bold text-gray-900 truncate" id="app-logo-mobile">MyShop</span>
+                </a>
+                <div class="flex items-center gap-1 flex-1 justify-end min-w-0">
+                    @if($isLoggedIn)
+                        <a href="/cart" class="p-2 text-gray-600 hover:text-blue-600 flex-shrink-0" aria-label="Cart">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </a>
+                    @endif
+                    <button @click="open = !open" class="p-2 text-gray-600 hover:text-gray-900 flex-shrink-0" aria-label="Menu">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
                 </div>
-            @else
-                <!-- Desktop Nav - Not Logged In -->
-                <nav class="hidden md:flex space-x-6">
-                    <a href="/" class="hover:[style-color:var(--primary-color)]">Home</a>
-                    <a href="/products" class="hover:[style-color:var(--primary-color)]">Products</a>
-                </nav>
-
-                <!-- Login/Register Buttons - Desktop -->
-                <div class="hidden md:flex items-center space-x-4">
-                    <a href="{{ route('login') }}" class="px-4 py-2 text-gray-700 hover:[style-color:var(--primary-color)] font-medium">Login</a>
-                    <a href="{{ route('login') }}" class="px-4 py-2 text-white rounded-lg transition-colors font-medium theme-primary-btn">Register</a>
-                </div>
-            @endif
-
-            <!-- Mobile Hamburger -->
-            <button @click="open = !open" class="md:hidden text-2xl focus:outline-none">
-                ☰
-            </button>
+            </div>
         </div>
+
+        <!-- Bottom row: Category links -->
+        <nav class="hidden md:block border-t border-gray-200 bg-gray-50/50 overflow-x-auto nav-scrollbar-hide">
+            <div class="flex justify-center gap-4 sm:gap-6 lg:gap-8 py-2.5 sm:py-3 px-4 sm:px-6 min-w-max lg:min-w-0">
+                <a href="/" class="text-xs sm:text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors whitespace-nowrap py-1">Home</a>
+                <a href="/products" class="text-xs sm:text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors whitespace-nowrap py-1">Best Sellers</a>
+                <a href="/products" class="text-xs sm:text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors whitespace-nowrap py-1">Products</a>
+                <a href="/products" class="text-xs sm:text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors whitespace-nowrap py-1">Electronics</a>
+                <a href="/products" class="text-xs sm:text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors whitespace-nowrap py-1">Books</a>
+            </div>
+        </nav>
 
         <!-- Mobile Menu -->
         <div x-show="open" x-cloak class="md:hidden bg-gray-100 border-t">
@@ -229,7 +265,7 @@
     </header>
 
     <!-- Main -->
-    <main class="flex-1 container mx-auto py-8 px-6">
+    <main class="flex-1 container mx-auto py-4 sm:py-6 lg:py-8 px-4 sm:px-6">
         @yield('content')
     </main>
     @stack('js')
@@ -303,8 +339,8 @@
     <script>
         // Simulasi data tema dari API (array sederhana)
         const themeConfig = {
-            primaryColor: '#3b82f6',    // Warna untuk buttons
-            secondaryColor: '#8b5cf6',  // Warna untuk navbar
+            primaryColor: '#3b82f6',    // Buttons / accents
+            secondaryColor: '#f9fafb',  // Light navbar background
             appName: 'MyShop',
             logo: null // URL logo jika ada
         };
@@ -330,15 +366,15 @@
             });
             
             // Apply primary color ke logo/app name
-            const appLogo = document.getElementById('app-logo');
-            if (appLogo) {
+            const appLogos = document.querySelectorAll('#app-logo, #app-logo-mobile');
+            appLogos.forEach(function(appLogo) {
                 if (themeConfig.logo) {
                     appLogo.innerHTML = `<img src="${themeConfig.logo}" alt="${themeConfig.appName}" class="h-8 object-contain">`;
                 } else {
                     appLogo.style.color = themeConfig.primaryColor;
                     appLogo.textContent = themeConfig.appName;
                 }
-            }
+            });
             
             // Apply primary color ke hover states pada links
             const navLinks = document.querySelectorAll('nav a, header a:not(.theme-primary-btn)');

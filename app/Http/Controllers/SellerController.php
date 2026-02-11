@@ -264,7 +264,7 @@ class SellerController extends Controller
         }
 
         try {
-            $apiUrl = config('api.base_url') . config('api.endpoints.product_category.index');
+            $apiUrl = config('api.base_url') . config('api.endpoints.product_category.get');
 
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $token,
@@ -334,11 +334,11 @@ class SellerController extends Controller
             $jsonData = $request->json()->all();
             $request->merge($jsonData);
         } else {
-            // Try to parse JSON from raw content
             $rawContent = $request->getContent();
             if (!empty($rawContent)) {
                 $decoded = json_decode($rawContent, true);
                 if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $jsonData = $decoded;
                     $request->merge($decoded);
                 }
             }
@@ -348,6 +348,7 @@ class SellerController extends Controller
             'id' => 'nullable|string',
             'name' => 'required|string|max:255',
             'is_active' => 'required|boolean',
+            'parent_id' => 'nullable|string',
         ]);
 
         try {
@@ -357,11 +358,19 @@ class SellerController extends Controller
             ];
             $id = $request->input('id');
             if ($id !== null && $id !== '') {
-                $data['id'] = (string) $id;
+                $data['id'] = (string) trim($id);
+            }
+            // Parse parent_id from request (API may expect parent_id or parentId per docs)
+            $parentId = $request->input('parent_id')
+                ?? $request->input('parentId')
+                ?? ($jsonData['parent_id'] ?? $jsonData['parentId'] ?? null);
+            $parentId = $parentId !== null && $parentId !== '' ? trim((string) $parentId) : '';
+            if ($parentId !== '') {
+                $data['parent_id'] = $parentId;
+                $data['parentId'] = $parentId; // some APIs expect camelCase
             }
 
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $token,
+            $response = Http::withToken($token)->withHeaders([
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
             ])->post(config('api.base_url') . config('api.endpoints.product_category.store'), $data);
@@ -451,11 +460,13 @@ class SellerController extends Controller
 
             $apiUrl = config('api.base_url') . config('api.endpoints.product_category.delete');
 
-            $response = Http::withHeaders([
+            $http = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $token,
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
-            ])->post($apiUrl, $data);
+            ]);
+
+            $response = $http->post($apiUrl, $data);
 
             $responseData = $response->json();
             $statusCode = $response->status();
@@ -483,247 +494,6 @@ class SellerController extends Controller
                 'success' => false,
                 'status' => 'error',
                 'message' => 'Error deleting category: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Get all product subcategories
-     */
-    public function getSubCategories()
-    {
-        // Start session if not started
-        if (!session()->isStarted()) {
-            session()->start();
-        }
-
-        $token = session('sanctum_token');
-
-        if (!$token) {
-            Log::warning('No token found in session for getSubCategories', [
-                'session_keys' => array_keys(session()->all()),
-            ]);
-            return response()->json([
-                'success' => false,
-                'status' => 'error',
-                'message' => 'Authentication token not found. Please login again.'
-            ], 401);
-        }
-
-        try {
-            $apiUrl = config('api.base_url') . config('api.endpoints.product_sub_category.index');
-
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $token,
-                'Accept' => 'application/json',
-            ])->get($apiUrl);
-
-            $responseData = $response->json();
-            $statusCode = $response->status();
-
-            if ($response->successful()) {
-                return response()->json($responseData);
-            }
-
-            // Log API error for debugging
-            Log::warning('API error fetching subcategories', [
-                'status_code' => $statusCode,
-                'response_data' => $responseData,
-            ]);
-
-            // Return more detailed error information
-            return response()->json([
-                'success' => false,
-                'status' => 'error',
-                'message' => $responseData['message'] ?? 'Failed to fetch subcategories',
-                'data' => $responseData,
-                'api_status' => $statusCode
-            ], $statusCode);
-        } catch (\Exception $e) {
-            Log::error('Error fetching subcategories: ' . $e->getMessage(), [
-                'exception' => $e
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'status' => 'error',
-                'message' => 'Error fetching subcategories: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Store or update a product subcategory
-     */
-    public function storeSubCategory(Request $request)
-    {
-        // Start session if not started
-        if (!session()->isStarted()) {
-            session()->start();
-        }
-
-        $token = session('sanctum_token');
-
-        if (!$token) {
-            Log::warning('No token found in session for storeSubCategory', [
-                'session_keys' => array_keys(session()->all()),
-            ]);
-            return response()->json([
-                'success' => false,
-                'status' => 'error',
-                'message' => 'Authentication token not found. Please login again.'
-            ], 401);
-        }
-
-        // Get JSON data from request body - handle both JSON and form data
-        $jsonData = [];
-        if ($request->isJson() || $request->header('Content-Type') === 'application/json') {
-            $jsonData = $request->json()->all();
-            $request->merge($jsonData);
-        } else {
-            // Try to parse JSON from raw content
-            $rawContent = $request->getContent();
-            if (!empty($rawContent)) {
-                $decoded = json_decode($rawContent, true);
-                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                    $request->merge($decoded);
-                }
-            }
-        }
-
-        $request->validate([
-            'id' => 'nullable|string',
-            'name' => 'required|string|max:255',
-            'category_id' => 'required|string',
-            'is_active' => 'required|boolean',
-        ]);
-
-        try {
-            $data = [
-                'name' => (string) $request->input('name'),
-                'category_id' => (string) $request->input('category_id'),
-                'is_active' => filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN),
-            ];
-            $id = $request->input('id');
-            if ($id !== null && $id !== '') {
-                $data['id'] = (string) $id;
-            }
-
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $token,
-                'Accept' => 'application/json',
-                'Content-Type' => 'application/json',
-            ])->post(config('api.base_url') . config('api.endpoints.product_sub_category.store'), $data);
-
-            $responseData = $response->json();
-
-            if ($response->successful()) {
-                return response()->json($responseData);
-            }
-
-            // Return more detailed error information
-            return response()->json([
-                'success' => false,
-                'status' => 'error',
-                'message' => $responseData['message'] ?? 'Failed to save subcategory',
-                'data' => $responseData
-            ], $response->status());
-        } catch (\Exception $e) {
-            Log::error('Error saving subcategory: ' . $e->getMessage(), [
-                'exception' => $e,
-                'request_data' => $request->all()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'status' => 'error',
-                'message' => 'Error saving subcategory: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Delete a product subcategory
-     */
-    public function deleteSubCategory(Request $request)
-    {
-        // Start session if not started
-        if (!session()->isStarted()) {
-            session()->start();
-        }
-
-        $token = session('sanctum_token');
-
-        if (!$token) {
-            Log::warning('No token found in session for deleteSubCategory', [
-                'session_keys' => array_keys(session()->all()),
-            ]);
-            return response()->json([
-                'success' => false,
-                'status' => 'error',
-                'message' => 'Authentication token not found. Please login again.'
-            ], 401);
-        }
-
-        // Get JSON data from request body - handle both JSON and form data
-        $jsonData = [];
-        if ($request->isJson() || $request->header('Content-Type') === 'application/json') {
-            $jsonData = $request->json()->all();
-            $request->merge($jsonData);
-        } else {
-            // Try to parse JSON from raw content
-            $rawContent = $request->getContent();
-            if (!empty($rawContent)) {
-                $decoded = json_decode($rawContent, true);
-                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                    $request->merge($decoded);
-                }
-            }
-        }
-
-        $request->validate([
-            'id' => 'required|string',
-        ]);
-
-        try {
-            $data = [
-                'id' => $request->input('id'),
-            ];
-
-            $apiUrl = config('api.base_url') . config('api.endpoints.product_sub_category.delete');
-
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $token,
-                'Accept' => 'application/json',
-                'Content-Type' => 'application/json',
-            ])->post($apiUrl, $data);
-
-            $responseData = $response->json();
-            $statusCode = $response->status();
-
-            if ($response->successful()) {
-                return response()->json($responseData);
-            }
-
-            // Return more detailed error information
-            return response()->json([
-                'success' => false,
-                'status' => 'error',
-                'message' => $responseData['message'] ?? 'Failed to delete subcategory',
-                'data' => $responseData,
-                'api_status' => $statusCode
-            ], $statusCode);
-        } catch (\Exception $e) {
-            Log::error('Error deleting subcategory: ' . $e->getMessage(), [
-                'exception' => $e,
-                'request_data' => $request->all(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'status' => 'error',
-                'message' => 'Error deleting subcategory: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -795,8 +565,8 @@ class SellerController extends Controller
 
     /**
      * Store or update a product
-     * API expects: id?, title, description, category_id, sub_category_id, is_active, is_visible,
-     * stock, sku, price, discount_price, country_id, state_id, city_id
+     * API expects: id?, title, description, category_id, is_active, is_visible,
+     * country_id, state_id, city_id, min_price, max_price
      */
     public function storeProduct(Request $request)
     {
@@ -835,24 +605,21 @@ class SellerController extends Controller
 
         try {
             $id = $request->input('id');
-            $id = ($id === '' || $id === null) ? null : (string) $id;
+            $id = ($id === '' || $id === null) ? null : trim((string) $id);
 
             $data = [
-                'title' => (string) ($request->input('title') ?? ''),
-                'description' => (string) ($request->input('description') ?? ''),
-                'category_id' => (string) ($request->input('category_id') ?? ''),
-                'sub_category_id' => (string) ($request->input('sub_category_id') ?? ''),
+                'title' => (string) trim($request->input('title') ?? ''),
+                'description' => (string) trim($request->input('description') ?? ''),
+                'category_id' => (string) trim($request->input('category_id') ?? ''),
                 'is_active' => filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN),
                 'is_visible' => filter_var($request->input('is_visible'), FILTER_VALIDATE_BOOLEAN),
-                'stock' => (int) ($request->input('stock') ?? 0),
-                'sku' => (string) ($request->input('sku') ?? ''),
-                'price' => (float) ($request->input('price') ?? 0),
-                'discount_price' => (float) ($request->input('discount_price') ?? 0),
                 'country_id' => (int) ($request->input('country_id') ?? 0),
                 'state_id' => (int) ($request->input('state_id') ?? 0),
                 'city_id' => (int) ($request->input('city_id') ?? 0),
+                'min_price' => (int) round((float) ($request->input('min_price') ?? 0)),
+                'max_price' => (int) round((float) ($request->input('max_price') ?? 0)),
             ];
-            if ($id !== null) {
+            if ($id !== null && $id !== '') {
                 $data['id'] = $id;
             }
 

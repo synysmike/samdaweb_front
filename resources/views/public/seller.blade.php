@@ -154,8 +154,8 @@
             <input type="hidden" id="subCategoryId" name="id" value="">
             
             <div>
-                <label for="subCategoryCategoryId" class="block text-sm font-medium text-gray-700 mb-2">Category <span class="text-red-500">*</span></label>
-                <select id="subCategoryCategoryId" name="category_id" required
+                <label for="subCategoryParentId" class="block text-sm font-medium text-gray-700 mb-2">Parent Category <span class="text-red-500">*</span></label>
+                <select id="subCategoryParentId" name="parent_id" required
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     <option value="">Select a category</option>
                 </select>
@@ -200,16 +200,23 @@
 
 @push('js')
 <script>
+    let allCategories = [];
     let categories = [];
     let subcategories = [];
 
-    // Load categories and subcategories on page load
+    function parseUuid(val) {
+        if (val == null) return '';
+        if (typeof val === 'string') return val.trim();
+        if (typeof val === 'object' && val !== null && (val.id || val.categoryId)) return String(val.id || val.categoryId || '').trim();
+        return String(val).trim();
+    }
+
+    // Load categories on page load
     document.addEventListener('DOMContentLoaded', function() {
         loadCategories();
-        loadSubCategories();
     });
 
-    // Load categories from API
+    // Load all categories from API (unified endpoint with parent_id)
     async function loadCategories() {
         try {
             const response = await fetch('{{ route("api.seller.categories") }}', {
@@ -240,10 +247,29 @@
             }
 
             if (result.status === 'success' || result.success) {
-                categories = result.data || [];
+                let raw = result.data ?? result.categories ?? [];
+                if (typeof raw === 'string') {
+                    try { raw = JSON.parse(raw) || []; } catch (_) { raw = []; }
+                }
+                const arr = Array.isArray(raw) ? raw : [];
+                // Map each item: { id, name, created_at, updated_at, slug, parent_id }
+                allCategories = arr.map(c => {
+                    const id = parseUuid(c.id ?? c.categoryId ?? '');
+                    const parentId = parseUuid(c.parent_id ?? c.parentId ?? null);
+                    return {
+                        id: id,
+                        name: c.name ?? '',
+                        parent_id: parentId || null,
+                        created_at: c.created_at,
+                        updated_at: c.updated_at,
+                        slug: c.slug ?? '',
+                        is_active: c.is_active
+                    };
+                });
+                categories = allCategories.filter(c => !c.parent_id || c.parent_id === '');
+                subcategories = allCategories.filter(c => c.parent_id && c.parent_id !== '');
                 renderCategories();
-                // Reload subcategories to update category names
-                loadSubCategories();
+                renderSubCategories();
             } else {
                 Swal.fire({
                     icon: 'error',
@@ -259,6 +285,12 @@
                 text: 'An error occurred while loading categories'
             });
         }
+    }
+
+    function getCategoryName(id) {
+        const idStr = parseUuid(id);
+        const c = allCategories.find(x => parseUuid(x.id) === idStr);
+        return c ? c.name : 'Unknown';
     }
 
     // Render categories table
@@ -429,7 +461,8 @@
         const formData = {
             id: document.getElementById('categoryId').value || null,
             name: document.getElementById('categoryName').value.trim(),
-            is_active: document.querySelector('input[name="is_active"]:checked').value === '1'
+            is_active: document.querySelector('input[name="is_active"]:checked').value === '1',
+            parent_id: null
         };
 
         if (!formData.name) {
@@ -483,7 +516,6 @@
                 });
                 closeCategoryModal();
                 loadCategories();
-                // Subcategories will be reloaded automatically by loadCategories
             } else {
                 Swal.fire({
                     icon: 'error',
@@ -522,56 +554,6 @@
 
     // ========== SUBCATEGORY FUNCTIONS ==========
 
-    // Load subcategories from API
-    async function loadSubCategories() {
-        try {
-            const response = await fetch('{{ route("api.seller.subcategories") }}', {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                credentials: 'same-origin'
-            });
-
-            const result = await response.json();
-
-            if (response.status === 401) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Unauthorized',
-                    text: result.message || 'Your session has expired. Please login again.',
-                    confirmButtonText: 'Go to Login',
-                    allowOutsideClick: false
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        window.location.href = '{{ route("login") }}';
-                    }
-                });
-                return;
-            }
-
-            if (result.status === 'success' || result.success) {
-                subcategories = result.data || [];
-                renderSubCategories();
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: result.message || 'Failed to load subcategories'
-                });
-            }
-        } catch (error) {
-            console.error('Error loading subcategories:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'An error occurred while loading subcategories'
-            });
-        }
-    }
-
     // Render subcategories table
     function renderSubCategories() {
         const tbody = document.getElementById('subcategoriesTableBody');
@@ -597,9 +579,7 @@
             const updatedDate = subcategory.updated_at ? new Date(subcategory.updated_at).toLocaleDateString() : 'N/A';
             const isActive = subcategory.is_active === true || subcategory.is_active === '1' || subcategory.is_active === 1;
             
-            // Find category name
-            const category = categories.find(cat => cat.id === subcategory.category_id);
-            const categoryName = category ? category.name : 'Unknown';
+            const categoryName = getCategoryName(subcategory.parent_id ?? subcategory.category_id ?? '');
             
             return `
                 <tr class="hover:bg-gray-50">
@@ -632,14 +612,15 @@
         document.getElementById('subCategoryId').value = '';
         document.querySelector('#subCategoryForm input[name="is_active"][value="1"]').checked = true;
         
-        // Populate category dropdown
-        const categorySelect = document.getElementById('subCategoryCategoryId');
-        categorySelect.innerHTML = '<option value="">Select a category</option>';
+        const parentSelect = document.getElementById('subCategoryParentId');
+        parentSelect.innerHTML = '<option value="">Select a category</option>';
         categories.forEach(category => {
+            const uuid = parseUuid(category.id);
+            if (!uuid) return;
             const option = document.createElement('option');
-            option.value = category.id;
-            option.textContent = category.name;
-            categorySelect.appendChild(option);
+            option.value = uuid;
+            option.textContent = category.name || 'Unnamed';
+            parentSelect.appendChild(option);
         });
         
         document.getElementById('subCategoryModal').classList.remove('hidden');
@@ -654,7 +635,8 @@
 
     // Edit subcategory
     function editSubCategory(id) {
-        const subcategory = subcategories.find(sub => sub.id === id);
+        const idStr = parseUuid(id);
+        const subcategory = subcategories.find(sub => parseUuid(sub.id) === idStr);
         if (!subcategory) {
             Swal.fire({
                 icon: 'error',
@@ -668,17 +650,17 @@
         document.getElementById('subCategoryId').value = subcategory.id;
         document.getElementById('subCategoryName').value = subcategory.name || '';
         
-        // Populate category dropdown
-        const categorySelect = document.getElementById('subCategoryCategoryId');
-        categorySelect.innerHTML = '<option value="">Select a category</option>';
+        const parentSelect = document.getElementById('subCategoryParentId');
+        parentSelect.innerHTML = '<option value="">Select a category</option>';
+        const targetParentId = parseUuid(subcategory.parent_id ?? subcategory.category_id ?? subcategory.categoryId ?? '');
         categories.forEach(category => {
+            const uuid = parseUuid(category.id);
+            if (!uuid) return;
             const option = document.createElement('option');
-            option.value = category.id;
-            option.textContent = category.name;
-            if (category.id === subcategory.category_id) {
-                option.selected = true;
-            }
-            categorySelect.appendChild(option);
+            option.value = uuid;
+            option.textContent = category.name || 'Unnamed';
+            if (uuid === targetParentId) option.selected = true;
+            parentSelect.appendChild(option);
         });
         
         const isActive = subcategory.is_active === true || subcategory.is_active === '1' || subcategory.is_active === 1;
@@ -702,7 +684,7 @@
 
         if (result.isConfirmed) {
             try {
-                const response = await fetch('{{ route("api.seller.subcategories.delete") }}', {
+                const response = await fetch('{{ route("api.seller.categories.delete") }}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -742,7 +724,7 @@
                         toast: true,
                         position: 'top-end'
                     });
-                    loadSubCategories();
+                    loadCategories();
                 } else {
                     const errorMsg = data.message || data.data?.message || 'Failed to delete subcategory';
                     const apiStatus = data.api_status ? ` (API Status: ${data.api_status})` : '';
@@ -768,10 +750,13 @@
     document.getElementById('subCategoryForm').addEventListener('submit', async function(e) {
         e.preventDefault();
 
+        const parentSelect = document.getElementById('subCategoryParentId');
+        const parentId = parseUuid(parentSelect?.value);
+
         const formData = {
-            id: document.getElementById('subCategoryId').value || null,
+            id: parseUuid(document.getElementById('subCategoryId').value) || null,
             name: document.getElementById('subCategoryName').value.trim(),
-            category_id: document.getElementById('subCategoryCategoryId').value,
+            parent_id: parentId || null,
             is_active: document.querySelector('#subCategoryForm input[name="is_active"]:checked').value === '1'
         };
 
@@ -784,17 +769,17 @@
             return;
         }
 
-        if (!formData.category_id) {
+        if (!formData.parent_id) {
             Swal.fire({
                 icon: 'error',
                 title: 'Validation Error',
-                text: 'Please select a category'
+                text: 'Please select a parent category'
             });
             return;
         }
 
         try {
-            const response = await fetch('{{ route("api.seller.subcategories.store") }}', {
+            const response = await fetch('{{ route("api.seller.categories.store") }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -834,7 +819,7 @@
                     position: 'top-end'
                 });
                 closeSubCategoryModal();
-                loadSubCategories();
+                loadCategories();
             } else {
                 Swal.fire({
                     icon: 'error',

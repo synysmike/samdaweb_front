@@ -44,14 +44,10 @@ return [
             'cities' => '/api/v1/world/cities',
         ],
         'product_category' => [
-            'index' => '/api/v1/product-category/get',
+            'get' => '/api/v1/product-category/get',
+            'show' => '/api/v1/product-category/show',
             'store' => '/api/v1/product-category/store',
             'delete' => '/api/v1/product-category/delete',
-        ],
-        'product_sub_category' => [
-            'index' => '/api/v1/product-sub-category/get',
-            'store' => '/api/v1/product-sub-category/store',
-            'delete' => '/api/v1/product-sub-category/delete',
         ],
         'product' => [
             'index' => '/api/v1/product/get',
