@@ -499,6 +499,808 @@ class SellerController extends Controller
     }
 
     /**
+     * Show the product attributes page
+     */
+    public function attributes()
+    {
+        $shop = $this->checkShop();
+
+        if (!$shop) {
+            return redirect()->route('seller.register-shop');
+        }
+
+        return view('public.seller.attributes', ['shop' => $shop]);
+    }
+
+    /**
+     * Get all product attributes
+     */
+    public function getAttributes()
+    {
+        if (!session()->isStarted()) {
+            session()->start();
+        }
+
+        $token = session('sanctum_token');
+
+        if (!$token) {
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Authentication token not found. Please login again.'
+            ], 401);
+        }
+
+        try {
+            $apiUrl = config('api.base_url') . config('api.endpoints.product_attribute.get');
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Accept' => 'application/json',
+            ])->get($apiUrl);
+
+            $responseData = $response->json();
+
+            if ($response->successful()) {
+                return response()->json($responseData);
+            }
+
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => $responseData['message'] ?? 'Failed to fetch attributes',
+                'data' => $responseData,
+                'api_status' => $response->status()
+            ], $response->status());
+        } catch (\Exception $e) {
+            Log::error('Error fetching attributes: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Error fetching attributes: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Show a single product attribute
+     */
+    public function showAttribute(Request $request)
+    {
+        if (!session()->isStarted()) {
+            session()->start();
+        }
+
+        $token = session('sanctum_token');
+
+        if (!$token) {
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Authentication token not found. Please login again.'
+            ], 401);
+        }
+
+        $jsonData = [];
+        if ($request->isJson() || $request->header('Content-Type') === 'application/json') {
+            $jsonData = $request->json()->all();
+        } else {
+            $rawContent = $request->getContent();
+            if (!empty($rawContent)) {
+                $decoded = json_decode($rawContent, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $jsonData = $decoded;
+                }
+            }
+        }
+
+        $id = $request->input('id') ?? $jsonData['id'] ?? null;
+
+        if (!$id) {
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Attribute ID is required'
+            ], 422);
+        }
+
+        try {
+            $apiUrl = config('api.base_url') . config('api.endpoints.product_attribute.show');
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ])->post($apiUrl, ['id' => $id]);
+
+            $responseData = $response->json();
+
+            if ($response->successful()) {
+                return response()->json($responseData);
+            }
+
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => $responseData['message'] ?? 'Failed to fetch attribute',
+                'data' => $responseData
+            ], $response->status());
+        } catch (\Exception $e) {
+            Log::error('Error fetching attribute: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Error fetching attribute: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Store or update a product attribute
+     */
+    public function storeAttribute(Request $request)
+    {
+        if (!session()->isStarted()) {
+            session()->start();
+        }
+
+        $token = session('sanctum_token');
+
+        if (!$token) {
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Authentication token not found. Please login again.'
+            ], 401);
+        }
+
+        $jsonData = [];
+        if ($request->isJson() || $request->header('Content-Type') === 'application/json') {
+            $jsonData = $request->json()->all();
+            $request->merge($jsonData);
+        } else {
+            $rawContent = $request->getContent();
+            if (!empty($rawContent)) {
+                $decoded = json_decode($rawContent, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $jsonData = $decoded;
+                    $request->merge($decoded);
+                }
+            }
+        }
+
+        $request->validate([
+            'id' => 'nullable|string',
+            'name' => 'required|string|max:255',
+            'type' => 'nullable|string|in:radio,select',
+        ]);
+
+        try {
+            $data = [
+                'name' => (string) trim($request->input('name')),
+            ];
+            $id = $request->input('id');
+            if ($id !== null && $id !== '') {
+                $data['id'] = (string) trim($id);
+            }
+            $type = trim((string) ($request->input('type') ?? ''));
+            if ($type !== '') {
+                $data['type'] = $type;
+            }
+            // When type is empty, backend will auto-set as "select"
+
+            $response = Http::withToken($token)->withHeaders([
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ])->post(config('api.base_url') . config('api.endpoints.product_attribute.store'), $data);
+
+            $responseData = $response->json();
+
+            if ($response->successful()) {
+                return response()->json($responseData);
+            }
+
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => $responseData['message'] ?? 'Failed to save attribute',
+                'data' => $responseData
+            ], $response->status());
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Error saving attribute: ' . $e->getMessage(), [
+                'exception' => $e,
+                'request_data' => $request->all()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Error saving attribute: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a product attribute
+     */
+    public function deleteAttribute(Request $request)
+    {
+        if (!session()->isStarted()) {
+            session()->start();
+        }
+
+        $token = session('sanctum_token');
+
+        if (!$token) {
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Authentication token not found. Please login again.'
+            ], 401);
+        }
+
+        $jsonData = [];
+        if ($request->isJson() || $request->header('Content-Type') === 'application/json') {
+            $jsonData = $request->json()->all();
+            $request->merge($jsonData);
+        } else {
+            $rawContent = $request->getContent();
+            if (!empty($rawContent)) {
+                $decoded = json_decode($rawContent, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $request->merge($decoded);
+                }
+            }
+        }
+
+        $request->validate([
+            'id' => 'required|string',
+        ]);
+
+        try {
+            $apiUrl = config('api.base_url') . config('api.endpoints.product_attribute.delete');
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ])->post($apiUrl, ['id' => $request->input('id')]);
+
+            $responseData = $response->json();
+
+            if ($response->successful()) {
+                return response()->json($responseData);
+            }
+
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => $responseData['message'] ?? 'Failed to delete attribute',
+                'data' => $responseData,
+                'api_status' => $response->status()
+            ], $response->status());
+        } catch (\Exception $e) {
+            Log::error('Error deleting attribute: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Error deleting attribute: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get product attribute values (filtered by product_attribute_id)
+     */
+    public function getAttributeValues(Request $request)
+    {
+        if (!session()->isStarted()) {
+            session()->start();
+        }
+
+        $token = session('sanctum_token');
+        if (!$token) {
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Authentication token not found. Please login again.'
+            ], 401);
+        }
+
+        $jsonData = [];
+        if ($request->isJson() || $request->header('Content-Type') === 'application/json') {
+            $jsonData = $request->json()->all();
+            $request->merge($jsonData);
+        } else {
+            $rawContent = $request->getContent();
+            if (!empty($rawContent)) {
+                $decoded = json_decode($rawContent, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $jsonData = $decoded;
+                    $request->merge($decoded);
+                }
+            }
+        }
+
+        $productAttributeId = $request->input('product_attribute_id') ?? $jsonData['product_attribute_id'] ?? null;
+        if (!$productAttributeId) {
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'product_attribute_id is required'
+            ], 422);
+        }
+
+        try {
+            $apiUrl = config('api.base_url') . config('api.endpoints.product_attribute_value.get');
+            $body = ['product_attribute_id' => $productAttributeId];
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ])->post($apiUrl, $body);
+
+            $responseData = $response->json();
+            if ($response->successful()) {
+                return response()->json($responseData);
+            }
+
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => $responseData['message'] ?? 'Failed to fetch attribute values',
+                'data' => $responseData,
+                'api_status' => $response->status()
+            ], $response->status());
+        } catch (\Exception $e) {
+            Log::error('Error fetching attribute values: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Error fetching attribute values: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Show a single product attribute value
+     */
+    public function showAttributeValue(Request $request)
+    {
+        if (!session()->isStarted()) {
+            session()->start();
+        }
+
+        $token = session('sanctum_token');
+        if (!$token) {
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Authentication token not found. Please login again.'
+            ], 401);
+        }
+
+        $jsonData = [];
+        if ($request->isJson() || $request->header('Content-Type') === 'application/json') {
+            $jsonData = $request->json()->all();
+        } else {
+            $rawContent = $request->getContent();
+            if (!empty($rawContent)) {
+                $decoded = json_decode($rawContent, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $jsonData = $decoded;
+                }
+            }
+        }
+
+        $id = $request->input('id') ?? $jsonData['id'] ?? null;
+        if (!$id) {
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Attribute value ID is required'
+            ], 422);
+        }
+
+        try {
+            $apiUrl = config('api.base_url') . config('api.endpoints.product_attribute_value.show');
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ])->post($apiUrl, ['id' => $id]);
+
+            $responseData = $response->json();
+            if ($response->successful()) {
+                return response()->json($responseData);
+            }
+
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => $responseData['message'] ?? 'Failed to fetch attribute value',
+                'data' => $responseData
+            ], $response->status());
+        } catch (\Exception $e) {
+            Log::error('Error fetching attribute value: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Error fetching attribute value: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Store or update a product attribute value
+     */
+    public function storeAttributeValue(Request $request)
+    {
+        if (!session()->isStarted()) {
+            session()->start();
+        }
+
+        $token = session('sanctum_token');
+        if (!$token) {
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Authentication token not found. Please login again.'
+            ], 401);
+        }
+
+        $jsonData = [];
+        if ($request->isJson() || $request->header('Content-Type') === 'application/json') {
+            $jsonData = $request->json()->all();
+            $request->merge($jsonData);
+        } else {
+            $rawContent = $request->getContent();
+            if (!empty($rawContent)) {
+                $decoded = json_decode($rawContent, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $jsonData = $decoded;
+                    $request->merge($decoded);
+                }
+            }
+        }
+
+        $request->validate([
+            'id' => 'nullable|string',
+            'product_attribute_id' => 'required|string',
+            'value' => 'required|string|max:255',
+            'is_active' => 'nullable|boolean',
+            'sort_order' => 'nullable|integer|min:0',
+        ]);
+
+        try {
+            $id = $request->input('id');
+            $data = [
+                'product_attribute_id' => (string) trim($request->input('product_attribute_id')),
+                'value' => (string) trim($request->input('value')),
+                'is_active' => filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN),
+                'sort_order' => (int) ($request->input('sort_order') ?? 0),
+            ];
+            if ($id !== null && $id !== '') {
+                $data['id'] = (string) trim($id);
+            }
+
+            $response = Http::withToken($token)->withHeaders([
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ])->post(config('api.base_url') . config('api.endpoints.product_attribute_value.store'), $data);
+
+            $responseData = $response->json();
+            if ($response->successful()) {
+                return response()->json($responseData);
+            }
+
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => $responseData['message'] ?? 'Failed to save attribute value',
+                'data' => $responseData
+            ], $response->status());
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Error saving attribute value: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Error saving attribute value: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a product attribute value
+     */
+    public function deleteAttributeValue(Request $request)
+    {
+        if (!session()->isStarted()) {
+            session()->start();
+        }
+
+        $token = session('sanctum_token');
+        if (!$token) {
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Authentication token not found. Please login again.'
+            ], 401);
+        }
+
+        $jsonData = [];
+        if ($request->isJson() || $request->header('Content-Type') === 'application/json') {
+            $jsonData = $request->json()->all();
+            $request->merge($jsonData);
+        } else {
+            $rawContent = $request->getContent();
+            if (!empty($rawContent)) {
+                $decoded = json_decode($rawContent, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $request->merge($decoded);
+                }
+            }
+        }
+
+        $request->validate([
+            'id' => 'required|string',
+        ]);
+
+        try {
+            $apiUrl = config('api.base_url') . config('api.endpoints.product_attribute_value.delete');
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ])->post($apiUrl, ['id' => $request->input('id')]);
+
+            $responseData = $response->json();
+            if ($response->successful()) {
+                return response()->json($responseData);
+            }
+
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => $responseData['message'] ?? 'Failed to delete attribute value',
+                'data' => $responseData,
+                'api_status' => $response->status()
+            ], $response->status());
+        } catch (\Exception $e) {
+            Log::error('Error deleting attribute value: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Error deleting attribute value: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get product attribute set (attributes joined with product)
+     */
+    public function getProductAttributeSet(Request $request)
+    {
+        if (!session()->isStarted()) {
+            session()->start();
+        }
+
+        $token = session('sanctum_token');
+        if (!$token) {
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Authentication token not found. Please login again.'
+            ], 401);
+        }
+
+        $jsonData = [];
+        if ($request->isJson() || $request->header('Content-Type') === 'application/json') {
+            $jsonData = $request->json()->all();
+            $request->merge($jsonData);
+        } else {
+            $rawContent = $request->getContent();
+            if (!empty($rawContent)) {
+                $decoded = json_decode($rawContent, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $jsonData = $decoded;
+                    $request->merge($decoded);
+                }
+            }
+        }
+
+        $productId = $request->input('product_id') ?? $jsonData['product_id'] ?? null;
+        if (!$productId) {
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'product_id is required'
+            ], 422);
+        }
+
+        try {
+            $apiUrl = config('api.base_url') . config('api.endpoints.product_attribute_set.get');
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ])->post($apiUrl, ['product_id' => $productId]);
+
+            $responseData = $response->json();
+            if ($response->successful()) {
+                return response()->json($responseData);
+            }
+
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => $responseData['message'] ?? 'Failed to fetch product attribute set',
+                'data' => $responseData,
+                'api_status' => $response->status()
+            ], $response->status());
+        } catch (\Exception $e) {
+            Log::error('Error fetching product attribute set: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Error fetching product attribute set: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Store product attribute set (pair product with attribute)
+     */
+    public function storeProductAttributeSet(Request $request)
+    {
+        if (!session()->isStarted()) {
+            session()->start();
+        }
+
+        $token = session('sanctum_token');
+        if (!$token) {
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Authentication token not found. Please login again.'
+            ], 401);
+        }
+
+        $jsonData = [];
+        if ($request->isJson() || $request->header('Content-Type') === 'application/json') {
+            $jsonData = $request->json()->all();
+            $request->merge($jsonData);
+        } else {
+            $rawContent = $request->getContent();
+            if (!empty($rawContent)) {
+                $decoded = json_decode($rawContent, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $jsonData = $decoded;
+                    $request->merge($decoded);
+                }
+            }
+        }
+
+        $request->validate([
+            'product_id' => 'required|string',
+            'product_attribute_id' => 'required|string',
+        ]);
+
+        try {
+            $apiUrl = config('api.base_url') . config('api.endpoints.product_attribute_set.store');
+            $body = [
+                'product_id' => (string) trim($request->input('product_id')),
+                'product_attribute_id' => (string) trim($request->input('product_attribute_id')),
+            ];
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ])->post($apiUrl, $body);
+
+            $responseData = $response->json();
+            if ($response->successful()) {
+                return response()->json($responseData);
+            }
+
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => $responseData['message'] ?? 'Failed to save product attribute set',
+                'data' => $responseData
+            ], $response->status());
+        } catch (\Exception $e) {
+            Log::error('Error saving product attribute set: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Error saving product attribute set: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete product attribute set
+     */
+    public function deleteProductAttributeSet(Request $request)
+    {
+        if (!session()->isStarted()) {
+            session()->start();
+        }
+
+        $token = session('sanctum_token');
+        if (!$token) {
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Authentication token not found. Please login again.'
+            ], 401);
+        }
+
+        $jsonData = [];
+        if ($request->isJson() || $request->header('Content-Type') === 'application/json') {
+            $jsonData = $request->json()->all();
+            $request->merge($jsonData);
+        } else {
+            $rawContent = $request->getContent();
+            if (!empty($rawContent)) {
+                $decoded = json_decode($rawContent, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $request->merge($decoded);
+                }
+            }
+        }
+
+        $request->validate([
+            'product_id' => 'required|string',
+            'product_attribute_id' => 'required|string',
+        ]);
+
+        try {
+            $apiUrl = config('api.base_url') . config('api.endpoints.product_attribute_set.delete');
+            $body = [
+                'product_id' => (string) trim($request->input('product_id')),
+                'product_attribute_id' => (string) trim($request->input('product_attribute_id')),
+            ];
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ])->post($apiUrl, $body);
+
+            $responseData = $response->json();
+            if ($response->successful()) {
+                return response()->json($responseData);
+            }
+
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => $responseData['message'] ?? 'Failed to delete product attribute set',
+                'data' => $responseData,
+                'api_status' => $response->status()
+            ], $response->status());
+        } catch (\Exception $e) {
+            Log::error('Error deleting product attribute set: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Error deleting product attribute set: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Get all products
      */
     public function getProducts()

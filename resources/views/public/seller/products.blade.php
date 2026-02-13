@@ -57,6 +57,7 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subcategory</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price Range</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -64,7 +65,7 @@
                     </thead>
                     <tbody id="productsTableBody" class="bg-white divide-y divide-gray-200">
                         <tr>
-                            <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+                            <td colspan="7" class="px-6 py-8 text-center text-gray-500">
                                 <div class="flex flex-col items-center">
                                     <svg class="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
@@ -181,6 +182,14 @@
                 </div>
             </div>
 
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Product Attributes</label>
+                <p class="text-xs text-gray-500 mb-2">Select attributes to associate with this product (e.g. Color, Size). Attributes are saved after the product is saved.</p>
+                <div id="productAttributesContainer" class="border border-gray-200 rounded-lg p-4 bg-gray-50 max-h-40 overflow-y-auto">
+                    <p class="text-sm text-gray-500">Loading attributes...</p>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <label for="productCountryId" class="block text-sm font-medium text-gray-700 mb-2">Country</label>
@@ -236,6 +245,8 @@
     let products = [];
     let categories = [];
     let subcategories = [];
+    let allAttributes = [];
+    let productAttributeSetIds = []; // Currently set attribute ids (when editing)
 
     const shopId = '{{ isset($shop) ? ($shop["id"] ?? "") : "" }}';
     const API_BASE_URL = ((@json(config('api.base_url'))) || '').replace(/\/$/, '');
@@ -333,6 +344,7 @@
         });
 
         await loadCategories();
+        await loadAttributes();
         loadProducts();
         applyShopLocationToProductForm();
 
@@ -385,6 +397,129 @@
             }
         } catch (error) {
             console.error('Error loading categories:', error);
+        }
+    }
+
+    // Load all attributes for product form
+    async function loadAttributes() {
+        try {
+            const response = await fetch('{{ route("api.seller.attributes") }}', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            });
+            const result = await response.json();
+            if (result.status === 'success' || result.success) {
+                let raw = result.data || result.attributes || [];
+                if (typeof raw === 'string') {
+                    try { raw = JSON.parse(raw) || []; } catch (_) { raw = []; }
+                }
+                allAttributes = Array.isArray(raw) ? raw.map(a => ({
+                    id: String(a.id || a.attributeId || ''),
+                    name: a.name || ''
+                })) : [];
+                renderProductAttributes([]);
+            } else {
+                document.getElementById('productAttributesContainer').innerHTML = '<p class="text-sm text-gray-500">No attributes available. Create attributes first.</p>';
+            }
+        } catch (error) {
+            console.error('Error loading attributes:', error);
+            document.getElementById('productAttributesContainer').innerHTML = '<p class="text-sm text-red-500">Failed to load attributes.</p>';
+        }
+    }
+
+    function renderProductAttributes(selectedIds) {
+        const container = document.getElementById('productAttributesContainer');
+        if (allAttributes.length === 0) {
+            container.innerHTML = '<p class="text-sm text-gray-500">No attributes available. Create attributes first.</p>';
+            return;
+        }
+        const sel = Array.isArray(selectedIds) ? selectedIds.map(String) : [];
+        container.innerHTML = allAttributes.map(a => {
+            const checked = sel.indexOf(String(a.id)) >= 0 ? ' checked' : '';
+            return `
+                <label class="flex items-center gap-2 cursor-pointer py-1">
+                    <input type="checkbox" class="product-attr-cb rounded border-gray-300 text-blue-600 focus:ring-blue-500" data-attribute-id="${escapeHtml(a.id)}"${checked}>
+                    <span class="text-sm text-gray-700">${escapeHtml(a.name)}</span>
+                </label>
+            `;
+        }).join('');
+    }
+
+    function getSelectedAttributeIds() {
+        const checkboxes = document.querySelectorAll('.product-attr-cb:checked');
+        return Array.from(checkboxes).map(cb => cb.getAttribute('data-attribute-id')).filter(Boolean);
+    }
+
+    async function loadProductAttributeSet(productId) {
+        try {
+            const response = await fetch('{{ route("api.seller.product-attribute-set") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ product_id: productId })
+            });
+            const result = await response.json();
+            if (result.status === 'success' || result.success) {
+                let raw = result.data || result.attributes || [];
+                if (typeof raw === 'string') {
+                    try { raw = JSON.parse(raw) || []; } catch (_) { raw = []; }
+                }
+                const arr = Array.isArray(raw) ? raw : [];
+                return arr.map(a => {
+                    const attr = a.attribute || a;
+                    return String(attr.id || attr.product_attribute_id || attr.attributeId || attr.productAttributeId || a.product_attribute_id || a.id || '');
+                }).filter(Boolean);
+            }
+            return [];
+        } catch (error) {
+            console.warn('Could not load product attribute set:', error);
+            return [];
+        }
+    }
+
+    async function syncProductAttributeSet(productId, selectedIds) {
+        const headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'X-Requested-With': 'XMLHttpRequest'
+        };
+        const toAdd = selectedIds.filter(id => productAttributeSetIds.indexOf(id) < 0);
+        const toRemove = productAttributeSetIds.filter(id => selectedIds.indexOf(id) < 0);
+
+        for (const attrId of toAdd) {
+            try {
+                await fetch('{{ route("api.seller.product-attribute-set.store") }}', {
+                    method: 'POST',
+                    headers,
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ product_id: productId, product_attribute_id: attrId })
+                });
+            } catch (e) {
+                console.error('Error adding attribute to product:', e);
+            }
+        }
+        for (const attrId of toRemove) {
+            try {
+                await fetch('{{ route("api.seller.product-attribute-set.delete") }}', {
+                    method: 'POST',
+                    headers,
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ product_id: productId, product_attribute_id: attrId })
+                });
+            } catch (e) {
+                console.error('Error removing attribute from product:', e);
+            }
         }
     }
 
@@ -479,7 +614,7 @@
         if (products.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+                    <td colspan="7" class="px-6 py-8 text-center text-gray-500">
                         <div class="flex flex-col items-center">
                             <svg class="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
@@ -494,8 +629,19 @@
 
         tbody.innerHTML = products.map(product => {
             const isActive = product.is_active === true || product.is_active === '1' || product.is_active === 1;
-            const category = categories.find(cat => String(cat.id) === String(product.category_id ?? product.categoryId ?? ''));
-            const categoryName = category ? category.name : 'N/A';
+            const productCatId = String(product.category_id ?? product.categoryId ?? '');
+            const sub = subcategories.find(s => String(s.id) === productCatId);
+            const cat = categories.find(c => String(c.id) === productCatId);
+            let categoryName = 'N/A';
+            let subcategoryName = '-';
+            if (sub) {
+                const parentCat = categories.find(c => String(c.id) === String(sub.category_id ?? ''));
+                categoryName = parentCat ? parentCat.name : 'N/A';
+                subcategoryName = sub.name || '-';
+            } else if (cat) {
+                categoryName = cat.name || 'N/A';
+                subcategoryName = '-';
+            }
             const imgs = (product.images && product.images.length) ? product.images : ['/placeholder-image.svg'];
             const displayName = product.title || product.name || 'N/A';
             const slidesHtml = imgs.map((url, i) =>
@@ -516,6 +662,9 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="text-sm text-gray-500">${escapeHtml(categoryName)}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-500">${escapeHtml(subcategoryName)}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="text-sm font-medium text-gray-900">$${parseFloat(((product.min_price != null ? product.min_price : product.price) || 0)).toFixed(2)} - $${parseFloat(((product.max_price != null ? product.max_price : product.price) || 0)).toFixed(2)}</div>
@@ -554,6 +703,8 @@
         document.getElementById('productMaxPrice').value = '0';
         populateCategoryDropdown();
         applyShopLocationToProductForm();
+        productAttributeSetIds = [];
+        renderProductAttributes([]);
         document.getElementById('productModal').classList.remove('hidden');
     }
 
@@ -733,6 +884,14 @@
             existingEl.classList.add('hidden');
         }
 
+        try {
+            productAttributeSetIds = await loadProductAttributeSet(product.id);
+            renderProductAttributes(productAttributeSetIds);
+        } catch (e) {
+            productAttributeSetIds = [];
+            renderProductAttributes([]);
+        }
+
         document.getElementById('productModal').classList.remove('hidden');
     }
 
@@ -893,6 +1052,10 @@
                 if (imageInput.files.length > 0 && productId) {
                     await uploadProductImages(productId, imageInput.files);
                 }
+
+                // Sync product attribute set (save/delete pairings)
+                const selectedAttrIds = getSelectedAttributeIds();
+                await syncProductAttributeSet(productId, selectedAttrIds);
 
                 Swal.fire({
                     icon: 'success',

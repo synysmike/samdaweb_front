@@ -49,6 +49,23 @@ return [
             'store' => '/api/v1/product-category/store',
             'delete' => '/api/v1/product-category/delete',
         ],
+        'product_attribute' => [
+            'get' => '/api/v1/product-attribute/get',
+            'show' => '/api/v1/product-attribute/show',
+            'store' => '/api/v1/product-attribute/store',
+            'delete' => '/api/v1/product-attribute/delete',
+        ],
+        'product_attribute_value' => [
+            'get' => '/api/v1/product-attribute-value/get',
+            'show' => '/api/v1/product-attribute-value/show',
+            'store' => '/api/v1/product-attribute-value/store',
+            'delete' => '/api/v1/product-attribute-value/delete',
+        ],
+        'product_attribute_set' => [
+            'get' => '/api/v1/product-attribute-set/get',
+            'store' => '/api/v1/product-attribute-set/store',
+            'delete' => '/api/v1/product-attribute-set/delete',
+        ],
         'product' => [
             'index' => '/api/v1/product/get',
             'store' => '/api/v1/product/store',

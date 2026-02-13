@@ -265,7 +265,7 @@
     </header>
 
     <!-- Main -->
-    <main class="flex-1 container mx-auto py-4 sm:py-6 lg:py-8 px-4 sm:px-6">
+    <main class="flex-1 w-full py-4 sm:py-6 lg:py-8 px-2 sm:px-3">
         @yield('content')
     </main>
     @stack('js')
