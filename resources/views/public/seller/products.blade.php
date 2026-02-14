@@ -9,27 +9,151 @@
 <link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.js"></script>
 <style>
-    .select2-container--default .select2-selection--single { height: 42px; border: 1px solid #d1d5db; border-radius: 0.5rem; }
-    .select2-container--default .select2-selection--single .select2-selection__rendered { line-height: 42px; padding-left: 16px; }
-    .select2-container { width: 100% !important; }
-    .product-image-slider { position: relative; width: 5rem; height: 5rem; border-radius: 0.5rem; overflow: hidden; background: #f3f4f6; }
-    .product-image-slider .slides { position: relative; width: 100%; height: 100%; }
-    .product-image-slider .slide { position: absolute; inset: 0; opacity: 0; transition: opacity 0.25s ease; pointer-events: none; }
-    .product-image-slider .slide.active { opacity: 1; z-index: 1; pointer-events: auto; }
-    .product-image-slider .slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .product-image-slider .slider-btn { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; width: 1.5rem; height: 1.5rem; border: 0; border-radius: 9999px; background: rgba(0,0,0,0.5); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0.7; transition: opacity 0.2s; font-size: 0.75rem; }
-    .product-image-slider .slider-btn:hover { opacity: 1; background: rgba(0,0,0,0.7); }
-    .product-image-slider .slider-prev { left: 2px; }
-    .product-image-slider .slider-next { right: 2px; }
-    #productDescriptionEditor { min-height: 120px; }
-    .ql-toolbar.ql-snow, .ql-container.ql-snow { border-color: #d1d5db; border-radius: 0.5rem; }
-    .ql-toolbar.ql-snow { border-bottom: 0; border-radius: 0.5rem 0.5rem 0 0; }
-    .ql-container.ql-snow { border-radius: 0 0 0.5rem 0.5rem; }
-    .ql-emoji-btn { padding: 2px 6px; cursor: pointer; font-size: 1.1em; line-height: 1; border: none; background: transparent; }
-    .ql-emoji-btn:hover { background: rgba(0,0,0,0.06); border-radius: 2px; }
-    .ql-emoji-picker { position: fixed; z-index: 9999; background: #fff; border: 1px solid #d1d5db; border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 8px; max-height: 180px; overflow-y: auto; display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
-    .ql-emoji-picker span { cursor: pointer; padding: 4px; font-size: 1.25em; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
-    .ql-emoji-picker span:hover { background: #f3f4f6; }
+    .select2-container--default .select2-selection--single {
+        height: 42px;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 42px;
+        padding-left: 16px;
+    }
+
+    .select2-container {
+        width: 100% !important;
+    }
+
+    .product-image-slider {
+        position: relative;
+        width: 5rem;
+        height: 5rem;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        background: #f3f4f6;
+    }
+
+    .product-image-slider .slides {
+        position: relative;
+        width: 100%;
+        height: 100%;
+    }
+
+    .product-image-slider .slide {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+        pointer-events: none;
+    }
+
+    .product-image-slider .slide.active {
+        opacity: 1;
+        z-index: 1;
+        pointer-events: auto;
+    }
+
+    .product-image-slider .slide img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .product-image-slider .slider-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 2;
+        width: 1.5rem;
+        height: 1.5rem;
+        border: 0;
+        border-radius: 9999px;
+        background: rgba(0, 0, 0, 0.5);
+        color: #fff;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+        font-size: 0.75rem;
+    }
+
+    .product-image-slider .slider-btn:hover {
+        opacity: 1;
+        background: rgba(0, 0, 0, 0.7);
+    }
+
+    .product-image-slider .slider-prev {
+        left: 2px;
+    }
+
+    .product-image-slider .slider-next {
+        right: 2px;
+    }
+
+    #productDescriptionEditor {
+        min-height: 120px;
+    }
+
+    .ql-toolbar.ql-snow,
+    .ql-container.ql-snow {
+        border-color: #d1d5db;
+        border-radius: 0.5rem;
+    }
+
+    .ql-toolbar.ql-snow {
+        border-bottom: 0;
+        border-radius: 0.5rem 0.5rem 0 0;
+    }
+
+    .ql-container.ql-snow {
+        border-radius: 0 0 0.5rem 0.5rem;
+    }
+
+    .ql-emoji-btn {
+        padding: 2px 6px;
+        cursor: pointer;
+        font-size: 1.1em;
+        line-height: 1;
+        border: none;
+        background: transparent;
+    }
+
+    .ql-emoji-btn:hover {
+        background: rgba(0, 0, 0, 0.06);
+        border-radius: 2px;
+    }
+
+    .ql-emoji-picker {
+        position: fixed;
+        z-index: 9999;
+        background: #fff;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        padding: 8px;
+        max-height: 180px;
+        overflow-y: auto;
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        gap: 4px;
+    }
+
+    .ql-emoji-picker span {
+        cursor: pointer;
+        padding: 4px;
+        font-size: 1.25em;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .ql-emoji-picker span:hover {
+        background: #f3f4f6;
+    }
 </style>
 
 <div class="space-y-6">
@@ -256,7 +380,10 @@
         if (filePath.startsWith('http://') || filePath.startsWith('https://')) return filePath;
         let rel = String(filePath).replace(/^\/+/, '');
         for (const p of ['storage/app/public/', 'app/public/', 'storage/']) {
-            if (rel.startsWith(p)) { rel = rel.slice(p.length); break; }
+            if (rel.startsWith(p)) {
+                rel = rel.slice(p.length);
+                break;
+            }
         }
         rel = rel.replace(/^\/+/, '');
         if (!rel) return null;
@@ -265,20 +392,20 @@
     }
 
     @php
-        $shopLocationData = isset($shop) ? [
-            'country_id' => $shop['country_id'] ?? null,
-            'state_id' => $shop['state_id'] ?? null,
-            'city_id' => $shop['city_id'] ?? null,
-            'country_name' => $shop['country_name'] ?? '',
-            'state_name' => $shop['state_name'] ?? '',
-            'city_name' => $shop['city_name'] ?? '',
-        ] : [];
+    $shopLocationData = isset($shop) ? [
+        'country_id' => $shop['country_id'] ?? null,
+        'state_id' => $shop['state_id'] ?? null,
+        'city_id' => $shop['city_id'] ?? null,
+        'country_name' => $shop['country_name'] ?? '',
+        'state_name' => $shop['state_name'] ?? '',
+        'city_name' => $shop['city_name'] ?? '',
+    ] : [];
     @endphp
     const shopLocation = @json($shopLocationData);
 
     let productDescriptionQuill = null;
 
-    const EMOJI_LIST = ['😀','😃','😄','😁','😅','😂','🤣','😊','😇','🙂','😉','😍','🥰','😘','😋','😜','🤔','🤨','😐','😑','😶','👍','👎','👏','🙌','👋','🤝','✌️','🤞','🤟','❤️','🧡','💛','💚','💙','💜','🖤','⭐','🌟','✨','🔥','💯','✅','❌','⚠️','📦','🛒','💰','🎉','🏷️'];
+    const EMOJI_LIST = ['😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊', '😇', '🙂', '😉', '😍', '🥰', '😘', '😋', '😜', '🤔', '🤨', '😐', '😑', '😶', '👍', '👎', '👏', '🙌', '👋', '🤝', '✌️', '🤞', '🤟', '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '⭐', '🌟', '✨', '🔥', '💯', '✅', '❌', '⚠️', '📦', '🛒', '💰', '🎉', '🏷️'];
 
     document.addEventListener('DOMContentLoaded', async function() {
         productDescriptionQuill = new Quill('#productDescriptionEditor', {
@@ -287,7 +414,11 @@
             modules: {
                 toolbar: [
                     ['bold', 'italic', 'underline'],
-                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                    [{
+                        'list': 'ordered'
+                    }, {
+                        'list': 'bullet'
+                    }],
                     ['link'],
                     ['clean']
                 ]
@@ -309,7 +440,10 @@
                 e.preventDefault();
                 e.stopPropagation();
                 const picker = document.getElementById('quillEmojiPicker');
-                if (picker) { picker.remove(); return; }
+                if (picker) {
+                    picker.remove();
+                    return;
+                }
                 const p = document.createElement('div');
                 p.id = 'quillEmojiPicker';
                 p.className = 'ql-emoji-picker';
@@ -322,7 +456,9 @@
                     s.addEventListener('click', function(ev) {
                         ev.stopPropagation();
                         const q = productDescriptionQuill;
-                        const range = q.getSelection(true) || { index: q.getLength() };
+                        const range = q.getSelection(true) || {
+                            index: q.getLength()
+                        };
                         q.insertText(range.index, emoji, 'user');
                         q.setSelection(range.index + emoji.length);
                         p.remove();
@@ -331,12 +467,15 @@
                     p.appendChild(s);
                 });
                 document.body.appendChild(p);
+
                 function close() {
                     const picker = document.getElementById('quillEmojiPicker');
                     if (picker) picker.remove();
                     document.removeEventListener('click', close);
                 }
-                setTimeout(function() { document.addEventListener('click', close); }, 10);
+                setTimeout(function() {
+                    document.addEventListener('click', close);
+                }, 10);
             });
         }
         productDescriptionQuill.on('text-change', function() {
@@ -376,7 +515,11 @@
             if (result.status === 'success' || result.success) {
                 let raw = result.data ?? result.categories ?? [];
                 if (typeof raw === 'string') {
-                    try { raw = JSON.parse(raw) || []; } catch (_) { raw = []; }
+                    try {
+                        raw = JSON.parse(raw) || [];
+                    } catch (_) {
+                        raw = [];
+                    }
                 }
                 const arr = Array.isArray(raw) ? raw : [];
                 // Split API response: no parent_id → category; has parent_id → subcategory
@@ -388,7 +531,10 @@
                     const pid = c.parent_id ?? c.parentId ?? null;
                     return pid != null && String(pid).trim() !== '';
                 });
-                categories = roots.map(c => ({ id: String(c.id ?? c.categoryId ?? ''), name: c.name ?? '' }));
+                categories = roots.map(c => ({
+                    id: String(c.id ?? c.categoryId ?? ''),
+                    name: c.name ?? ''
+                }));
                 subcategories = children.map(s => ({
                     id: String(s.id ?? s.subcategoryId ?? ''),
                     name: s.name ?? '',
@@ -416,7 +562,11 @@
             if (result.status === 'success' || result.success) {
                 let raw = result.data || result.attributes || [];
                 if (typeof raw === 'string') {
-                    try { raw = JSON.parse(raw) || []; } catch (_) { raw = []; }
+                    try {
+                        raw = JSON.parse(raw) || [];
+                    } catch (_) {
+                        raw = [];
+                    }
                 }
                 allAttributes = Array.isArray(raw) ? raw.map(a => ({
                     id: String(a.id || a.attributeId || ''),
@@ -466,13 +616,19 @@
                     'X-Requested-With': 'XMLHttpRequest'
                 },
                 credentials: 'same-origin',
-                body: JSON.stringify({ product_id: productId })
+                body: JSON.stringify({
+                    product_id: productId
+                })
             });
             const result = await response.json();
             if (result.status === 'success' || result.success) {
                 let raw = result.data || result.attributes || [];
                 if (typeof raw === 'string') {
-                    try { raw = JSON.parse(raw) || []; } catch (_) { raw = []; }
+                    try {
+                        raw = JSON.parse(raw) || [];
+                    } catch (_) {
+                        raw = [];
+                    }
                 }
                 const arr = Array.isArray(raw) ? raw : [];
                 return arr.map(a => {
@@ -503,7 +659,10 @@
                     method: 'POST',
                     headers,
                     credentials: 'same-origin',
-                    body: JSON.stringify({ product_id: productId, product_attribute_id: attrId })
+                    body: JSON.stringify({
+                        product_id: productId,
+                        product_attribute_id: attrId
+                    })
                 });
             } catch (e) {
                 console.error('Error adding attribute to product:', e);
@@ -515,7 +674,10 @@
                     method: 'POST',
                     headers,
                     credentials: 'same-origin',
-                    body: JSON.stringify({ product_id: productId, product_attribute_id: attrId })
+                    body: JSON.stringify({
+                        product_id: productId,
+                        product_attribute_id: attrId
+                    })
                 });
             } catch (e) {
                 console.error('Error removing attribute from product:', e);
@@ -585,7 +747,9 @@
                 'X-Requested-With': 'XMLHttpRequest'
             },
             credentials: 'same-origin',
-            body: JSON.stringify({ product_id: String(productId) })
+            body: JSON.stringify({
+                product_id: String(productId)
+            })
         });
         const json = await res.json();
         const list = (json.success && json.data) ? json.data : [];
@@ -610,7 +774,7 @@
     // Render products table
     function renderProducts() {
         const tbody = document.getElementById('productsTableBody');
-        
+
         if (products.length === 0) {
             tbody.innerHTML = `
                 <tr>
@@ -692,7 +856,10 @@
         document.getElementById('productSlug').value = '';
         document.getElementById('productCreatedAt').value = '';
         document.getElementById('productUpdatedAt').value = '';
-        if (productDescriptionQuill) { productDescriptionQuill.root.innerHTML = ''; document.getElementById('productDescription').value = ''; }
+        if (productDescriptionQuill) {
+            productDescriptionQuill.root.innerHTML = '';
+            document.getElementById('productDescription').value = '';
+        }
         document.getElementById('imagePreview').innerHTML = '';
         document.getElementById('existingImagesPreview').classList.add('hidden');
         document.getElementById('existingImagesGrid').innerHTML = '';
@@ -717,7 +884,10 @@
         document.getElementById('productSlug').value = '';
         document.getElementById('productCreatedAt').value = '';
         document.getElementById('productUpdatedAt').value = '';
-        if (productDescriptionQuill) { productDescriptionQuill.root.innerHTML = ''; document.getElementById('productDescription').value = ''; }
+        if (productDescriptionQuill) {
+            productDescriptionQuill.root.innerHTML = '';
+            document.getElementById('productDescription').value = '';
+        }
         document.getElementById('imagePreview').innerHTML = '';
         document.getElementById('existingImagesPreview').classList.add('hidden');
         document.getElementById('existingImagesGrid').innerHTML = '';
@@ -786,7 +956,7 @@
     document.getElementById('productImages').addEventListener('change', function(e) {
         const preview = document.getElementById('imagePreview');
         preview.innerHTML = '';
-        
+
         Array.from(e.target.files).forEach(file => {
             if (file.size > 1048576) { // 1MB
                 Swal.fire({
@@ -796,7 +966,7 @@
                 });
                 return;
             }
-            
+
             const reader = new FileReader();
             reader.onload = function(e) {
                 const div = document.createElement('div');
@@ -815,7 +985,11 @@
     window.editProduct = async function editProduct(id) {
         const product = products.find(p => p.id === id);
         if (!product) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Product not found' });
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Product not found'
+            });
             return;
         }
 
@@ -824,7 +998,10 @@
         document.getElementById('productShopId').value = product.shop_id || shopId;
         document.getElementById('productTitle').value = product.title || product.name || '';
         document.getElementById('productSlug').value = product.slug || '';
-        if (productDescriptionQuill) { productDescriptionQuill.root.innerHTML = product.description || ''; document.getElementById('productDescription').value = product.description || ''; }
+        if (productDescriptionQuill) {
+            productDescriptionQuill.root.innerHTML = product.description || '';
+            document.getElementById('productDescription').value = product.description || '';
+        }
         document.getElementById('productSku').value = product.sku || '';
         document.getElementById('productMinPrice').value = (product.min_price != null ? product.min_price : (product.price || 0));
         document.getElementById('productMaxPrice').value = (product.max_price != null ? product.max_price : (product.discount_price != null ? product.discount_price : (product.price || 0)));
@@ -919,7 +1096,9 @@
                         'X-Requested-With': 'XMLHttpRequest'
                     },
                     credentials: 'same-origin',
-                    body: JSON.stringify({ id: id })
+                    body: JSON.stringify({
+                        id: id
+                    })
                 });
 
                 const data = await response.json();
@@ -1005,11 +1184,19 @@
         if (productIdVal) formData.id = productIdVal;
 
         if (!formData.title) {
-            Swal.fire({ icon: 'error', title: 'Validation Error', text: 'Product title is required' });
+            Swal.fire({
+                icon: 'error',
+                title: 'Validation Error',
+                text: 'Product title is required'
+            });
             return;
         }
         if (!formData.category_id) {
-            Swal.fire({ icon: 'error', title: 'Validation Error', text: 'Please select a category' });
+            Swal.fire({
+                icon: 'error',
+                title: 'Validation Error',
+                text: 'Please select a category'
+            });
             return;
         }
 
@@ -1046,7 +1233,7 @@
 
             if (data.success || data.status === 'success' || response.ok) {
                 const productId = (data.data && data.data.id) || formData.id;
-                
+
                 // Handle image uploads if any
                 const imageInput = document.getElementById('productImages');
                 if (imageInput.files.length > 0 && productId) {
@@ -1075,11 +1262,15 @@
                     const list = [];
                     Object.keys(data.errors).forEach(function(field) {
                         const messages = Array.isArray(data.errors[field]) ? data.errors[field] : [data.errors[field]];
-                        messages.forEach(function(m) { list.push('<strong>' + field + ':</strong> ' + m); });
+                        messages.forEach(function(m) {
+                            list.push('<strong>' + field + ':</strong> ' + m);
+                        });
                     });
                     if (list.length) {
                         errorHtml = '<div class="text-left"><p class="mb-2">' + msg + '</p><ul class="list-unstyled mb-0">' +
-                            list.map(function(l) { return '<li>' + l + '</li>'; }).join('') + '</ul></div>';
+                            list.map(function(l) {
+                                return '<li>' + l + '</li>';
+                            }).join('') + '</ul></div>';
                     }
                 }
                 Swal.fire({
@@ -1128,9 +1319,18 @@
                 reader.onerror = reject;
                 reader.readAsDataURL(file);
             });
-            const body = { id: uuidv4(), product_id: String(productId), image: base64 };
+            const body = {
+                id: uuidv4(),
+                product_id: String(productId),
+                image: base64
+            };
             try {
-                await fetch(url, { method: 'POST', headers, credentials: 'same-origin', body: JSON.stringify(body) });
+                await fetch(url, {
+                    method: 'POST',
+                    headers,
+                    credentials: 'same-origin',
+                    body: JSON.stringify(body)
+                });
             } catch (error) {
                 console.error('Error uploading image:', error);
             }
