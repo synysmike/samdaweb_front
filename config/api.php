@@ -66,6 +66,10 @@ return [
             'store' => '/api/v1/product-attribute-set/store',
             'delete' => '/api/v1/product-attribute-set/delete',
         ],
+        'product_variant' => [
+            'get' => '/api/v1/product-variant/get',
+            'store' => '/api/v1/product-variant/store',
+        ],
         'product' => [
             'index' => '/api/v1/product/get',
             'store' => '/api/v1/product/store',

@@ -103,6 +103,30 @@ class SellerController extends Controller
     }
 
     /**
+     * Show the create product form (separate page)
+     */
+    public function productCreateForm()
+    {
+        $shop = $this->checkShop();
+        if (!$shop) {
+            return redirect()->route('seller.register-shop');
+        }
+        return view('public.seller.product-form', ['shop' => $shop, 'productId' => null]);
+    }
+
+    /**
+     * Show the edit product form (separate page)
+     */
+    public function productEditForm($id)
+    {
+        $shop = $this->checkShop();
+        if (!$shop) {
+            return redirect()->route('seller.register-shop');
+        }
+        return view('public.seller.product-form', ['shop' => $shop, 'productId' => $id]);
+    }
+
+    /**
      * Show the shop profile page
      */
     public function shopProfile()
@@ -1296,6 +1320,178 @@ class SellerController extends Controller
                 'success' => false,
                 'status' => 'error',
                 'message' => 'Error deleting product attribute set: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get product variants (for variant prices) - product-variant get
+     */
+    public function getProductVariants(Request $request)
+    {
+        if (!session()->isStarted()) {
+            session()->start();
+        }
+
+        $token = session('sanctum_token');
+        if (!$token) {
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Authentication token not found. Please login again.'
+            ], 401);
+        }
+
+        $jsonData = [];
+        if ($request->isJson() || $request->header('Content-Type') === 'application/json') {
+            $jsonData = $request->json()->all();
+            $request->merge($jsonData);
+        } else {
+            $rawContent = $request->getContent();
+            if (!empty($rawContent)) {
+                $decoded = json_decode($rawContent, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $jsonData = $decoded;
+                    $request->merge($decoded);
+                }
+            }
+        }
+
+        $productId = $request->input('product_id') ?? $jsonData['product_id'] ?? null;
+        if (!$productId) {
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'product_id is required'
+            ], 422);
+        }
+
+        try {
+            $apiUrl = config('api.base_url') . config('api.endpoints.product_variant.get');
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ])->post($apiUrl, ['product_id' => $productId]);
+
+            $responseData = $response->json();
+            if ($response->successful()) {
+                // Normalize so frontend always gets { success, data: array }
+                $data = $responseData['data'] ?? null;
+                if (is_array($data)) {
+                    if (isset($data['variants'])) {
+                        $list = $data['variants'];
+                    } elseif (isset($data['product_variants'])) {
+                        $list = $data['product_variants'];
+                    } else {
+                        $list = $data; // data is the list itself (including [])
+                    }
+                } else {
+                    $list = $responseData['variants'] ?? $responseData['product_variants'] ?? [];
+                }
+                $list = is_array($list) ? $list : [];
+                return response()->json([
+                    'success' => true,
+                    'status' => 'success',
+                    'data' => $list,
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => $responseData['message'] ?? 'Failed to fetch product variants',
+                'data' => $responseData,
+                'api_status' => $response->status()
+            ], $response->status());
+        } catch (\Exception $e) {
+            Log::error('Error fetching product variants: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Error fetching product variants: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Store product variant (create/update variant with price) - product-variant store
+     */
+    public function storeProductVariant(Request $request)
+    {
+        if (!session()->isStarted()) {
+            session()->start();
+        }
+
+        $token = session('sanctum_token');
+        if (!$token) {
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Authentication token not found. Please login again.'
+            ], 401);
+        }
+
+        $jsonData = [];
+        if ($request->isJson() || $request->header('Content-Type') === 'application/json') {
+            $jsonData = $request->json()->all();
+            $request->merge($jsonData);
+        } else {
+            $rawContent = $request->getContent();
+            if (!empty($rawContent)) {
+                $decoded = json_decode($rawContent, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $jsonData = $decoded;
+                    $request->merge($decoded);
+                }
+            }
+        }
+
+        $request->validate([
+            'product_id' => 'required|string',
+            'product_attribute_value_ids' => 'required|array',
+            'product_attribute_value_ids.*' => 'string',
+            'price' => 'required|numeric|min:0',
+            'stock' => 'nullable|numeric|min:0',
+            'id' => 'nullable|string',
+        ]);
+
+        try {
+            $data = [
+                'product_id' => (string) trim($request->input('product_id')),
+                'product_attribute_value_ids' => array_map('strval', array_values($request->input('product_attribute_value_ids', []))),
+                'price' => (float) $request->input('price'),
+                'stock' => (int) ($request->input('stock') ?? 0),
+            ];
+            if ($request->filled('id')) {
+                $data['id'] = (string) trim($request->input('id'));
+            }
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ])->post(config('api.base_url') . config('api.endpoints.product_variant.store'), $data);
+
+            $responseData = $response->json();
+            if ($response->successful()) {
+                return response()->json($responseData);
+            }
+
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => $responseData['message'] ?? 'Failed to save product variant',
+                'data' => $responseData
+            ], $response->status());
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Error saving product variant: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Error saving product variant: ' . $e->getMessage()
             ], 500);
         }
     }

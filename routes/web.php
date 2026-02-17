@@ -50,6 +50,8 @@ Route::middleware(['auth.session'])->group(function () {
     Route::get('/seller/categories', [SellerController::class, 'categories'])->name('seller.categories');
     Route::get('/seller/attributes', [SellerController::class, 'attributes'])->name('seller.attributes');
     Route::get('/seller/products', [SellerController::class, 'products'])->name('seller.products');
+    Route::get('/seller/products/create', [SellerController::class, 'productCreateForm'])->name('seller.products.create');
+    Route::get('/seller/products/{id}/edit', [SellerController::class, 'productEditForm'])->name('seller.products.edit');
     Route::get('/seller/shop-profile', [SellerController::class, 'shopProfile'])->name('seller.shop-profile');
     Route::get('/api/seller/categories', [SellerController::class, 'getCategories'])->name('api.seller.categories');
     Route::post('/api/seller/categories/store', [SellerController::class, 'storeCategory'])->name('api.seller.categories.store');
@@ -65,6 +67,8 @@ Route::middleware(['auth.session'])->group(function () {
     Route::post('/api/seller/product-attribute-set', [SellerController::class, 'getProductAttributeSet'])->name('api.seller.product-attribute-set');
     Route::post('/api/seller/product-attribute-set/store', [SellerController::class, 'storeProductAttributeSet'])->name('api.seller.product-attribute-set.store');
     Route::post('/api/seller/product-attribute-set/delete', [SellerController::class, 'deleteProductAttributeSet'])->name('api.seller.product-attribute-set.delete');
+    Route::post('/api/seller/product-variants', [SellerController::class, 'getProductVariants'])->name('api.seller.product-variants');
+    Route::post('/api/seller/product-variants/store', [SellerController::class, 'storeProductVariant'])->name('api.seller.product-variants.store');
     Route::get('/api/seller/products', [SellerController::class, 'getProducts'])->name('api.seller.products');
     Route::post('/api/seller/products/images', [SellerController::class, 'getProductImages'])->name('api.seller.products.images');
     Route::post('/api/seller/products/store', [SellerController::class, 'storeProduct'])->name('api.seller.products.store');
